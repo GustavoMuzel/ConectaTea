@@ -1,0 +1,26 @@
+<div class="mb-3">
+{% if field.use_fieldset %}
+  <fieldset{% if field.aria_describedby %} aria-describedby="{{ field.aria_describedby }}"{% endif %}>
+    <legend class="form-label fs-6 fw-semibold">{{ field.label }}</legend>
+    {% if field.help_text %}<div class="form-text" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</div>{% endif %}
+    {{ field.errors }}
+    {% for opcao in field %}
+      <div class="form-check">
+        {{ opcao.tag }}
+        <label class="form-check-label" for="{{ opcao.id_for_label }}">{{ opcao.choice_label }}</label>
+      </div>
+    {% endfor %}
+  </fieldset>
+{% elif field.widget_type == 'checkbox' %}
+  {{ field.errors }}
+  <div class="form-check">
+    {{ field }}
+    <label class="form-check-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+  </div>
+{% else %}
+  <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {% if field.help_text %}<div class="form-text" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</div>{% endif %}
+  {{ field.errors }}
+  {{ field }}
+{% endif %}
+</div>

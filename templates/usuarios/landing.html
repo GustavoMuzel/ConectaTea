@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Início{% endblock %}
+{% block content %}
+<div class="cartao mx-auto text-center" style="max-width: 42rem;">
+  <h1 class="h2 mb-3">ConectaTEA</h1>
+  <p class="mb-3">Um lugar para apoiar o desenvolvimento de pessoas autistas, com atividades acompanhadas de perto por profissionais especializados.</p>
+  <p class="mb-4">Cada profissional cria as atividades dos alunos que atende. Alunos e responsáveis veem o progresso em um ambiente simples e tranquilo, com poucos estímulos.</p>
+  <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+    <a class="btn btn-primary btn-lg" href="{% url 'cadastro' %}">Criar conta</a>
+    <a class="btn btn-outline-primary btn-lg" href="{% url 'login' %}">Entrar</a>
+  </div>
+</div>
+{% endblock %}

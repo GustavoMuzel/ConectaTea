@@ -1,0 +1,57 @@
+/* Baixa carga sensorial: cores calmas, texto grande, nada se move, foco sempre visível. */
+:root {
+  --bs-body-font-size: 1.125rem;
+  --bs-body-line-height: 1.6;
+  --bs-body-bg: #f7f7f4;
+  --bs-body-color: #1f2328;
+  --bs-primary: #2f5d7c;
+  --bs-primary-rgb: 47, 93, 124;
+  --bs-link-color: #2f5d7c;
+  --bs-link-color-rgb: 47, 93, 124;
+}
+
+*, *::before, *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+.btn-primary {
+  --bs-btn-bg: #2f5d7c;
+  --bs-btn-border-color: #2f5d7c;
+  --bs-btn-hover-bg: #264c66;
+  --bs-btn-hover-border-color: #264c66;
+  --bs-btn-active-bg: #1f3f55;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #2f5d7c;
+  --bs-btn-border-color: #2f5d7c;
+  --bs-btn-hover-bg: #2f5d7c;
+  --bs-btn-hover-border-color: #2f5d7c;
+  --bs-btn-active-bg: #264c66;
+}
+
+.btn, .form-control, .form-select { min-height: 2.75rem; }
+.form-control, .form-select { background-color: #fff; }
+
+:focus-visible {
+  outline: 3px solid #1f2328 !important;
+  outline-offset: 2px;
+  box-shadow: none !important;
+}
+
+.errorlist {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 .25rem;
+  color: #8a1c1c;
+  font-weight: 600;
+}
+
+.cartao {
+  background: #fff;
+  border: 1px solid #d8d8d2;
+  border-radius: .5rem;
+  padding: 1.5rem;
+}

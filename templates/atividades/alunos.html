@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Meus alunos{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Meus alunos</h1>
+<ul class="list-unstyled d-grid gap-3 mb-0">
+  {% for aluno in alunos %}
+    <li class="cartao">
+      <h2 class="h5 mb-2">{{ aluno.user.name }}</h2>
+      <a class="btn btn-outline-primary" href="{% url 'evolucao_aluno' aluno.pk %}">Ver evolução</a>
+    </li>
+  {% empty %}
+    <li class="cartao">Você ainda não tem alunos vinculados.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

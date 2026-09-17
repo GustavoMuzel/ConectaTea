@@ -1,18 +1,18 @@
 # ConectaTEA
 
-Aplicativo web para o desenvolvimento de habilidades sociais e de comunicação em adolescentes autistas, com atividades cadastradas e acompanhadas por profissionais de saúde e educação.
+O ConectaTEA é um aplicativo web que ajuda adolescentes autistas a desenvolver habilidades sociais e de comunicação. Profissionais de saúde e educação cadastram as atividades e acompanham o progresso de cada aluno.
 
-O projeto foi desenhado com foco em **baixa carga sensorial**: texto grande, cores calmas, sem animações ou transições, foco sempre visível e fluxos de confirmação explícitos para evitar toques acidentais.
+Todo o projeto segue a ideia de **baixa carga sensorial**. Por isso o texto é grande, as cores são calmas e não há animações nem transições. O foco do teclado fica sempre visível, e as ações importantes pedem confirmação explícita, o que evita toques por engano.
 
-Para o detalhamento de cada funcionalidade entregue, veja [docs/funcionalidades.md](docs/funcionalidades.md).
+As funcionalidades entregues estão detalhadas em [docs/funcionalidades.md](docs/funcionalidades.md).
 
 ## Stack Tecnológica
 
-- **Python** + **Django** (views baseadas em classe, autenticação por sessão)
-- **SQLite** para desenvolvimento local, já preparado para migrar para **PostgreSQL** (`psycopg2` incluso nas dependências)
-- **Bootstrap 5** via CDN, com um CSS próprio enxuto (`static/css/conectatea.css`) para controle fino de estímulos visuais — sem framework de JavaScript, só JS puro onde necessário
-- **Django REST Framework** + **SimpleJWT** para a API (`/api/auth/...`)
-- **Brevo** (API REST) para envio de e-mails transacionais
+- **Python** + **Django**, com views baseadas em classe e autenticação por sessão
+- **SQLite** no desenvolvimento local; a migração para **PostgreSQL** já está encaminhada (o `psycopg2` consta nas dependências)
+- **Bootstrap 5** carregado por CDN, mais um CSS próprio e pequeno (`static/css/conectatea.css`) para controlar os estímulos visuais em detalhe. Não usamos framework de JavaScript: onde é preciso, o JS é puro
+- **Django REST Framework** + **SimpleJWT** na API (`/api/auth/...`)
+- **Brevo** (API REST) para os e-mails transacionais
 
 ## Pré-requisitos
 
@@ -28,7 +28,7 @@ Para o detalhamento de cada funcionalidade entregue, veja [docs/funcionalidades.
    cd ConectTea
    ```
 
-2. Crie e ative um ambiente virtual:
+2. Crie o ambiente virtual e ative-o:
 
    ```bash
    python -m venv .venv
@@ -38,7 +38,7 @@ Para o detalhamento de cada funcionalidade entregue, veja [docs/funcionalidades.
    source .venv/bin/activate
    ```
 
-   Ou, com [uv](https://docs.astral.sh/uv/):
+   Se preferir o [uv](https://docs.astral.sh/uv/):
 
    ```bash
    uv venv
@@ -51,42 +51,42 @@ Para o detalhamento de cada funcionalidade entregue, veja [docs/funcionalidades.
    pip install -r requirements.txt
    ```
 
-4. Configure as variáveis de ambiente — copie o modelo e preencha os valores:
+4. Configure as variáveis de ambiente. Copie o arquivo de modelo e preencha os valores:
 
    ```bash
    cp .env.example .env
    ```
 
-   Variáveis do `.env`:
+   O `.env` usa estas variáveis:
 
    | Variável | Descrição |
    |---|---|
-   | `SECRET_KEY` | Chave secreta do Django. Gere uma com `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"` |
-   | `DEBUG` | `True` em desenvolvimento, `False` em produção |
-   | `ALLOWED_HOSTS` | Lista de hosts permitidos, separados por vírgula |
-   | `BREVO_API_KEY` | Chave da API do Brevo para envio de e-mail transacional. Se vazia, o envio é ignorado e apenas registrado em log — o cadastro nunca falha por causa disso |
-   | `BREVO_SENDER_EMAIL` | E-mail remetente configurado no Brevo |
-   | `BREVO_SENDER_NAME` | Nome do remetente exibido nos e-mails |
+   | `SECRET_KEY` | Chave secreta do Django. Para gerar uma, rode `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"` |
+   | `DEBUG` | `True` no desenvolvimento e `False` em produção |
+   | `ALLOWED_HOSTS` | Hosts permitidos, separados por vírgula |
+   | `BREVO_API_KEY` | Chave da API do Brevo, usada nos e-mails transacionais. Quando fica vazia, o sistema não envia nada e só anota o fato no log; o cadastro continua funcionando normalmente |
+   | `BREVO_SENDER_EMAIL` | Endereço do remetente, configurado no Brevo |
+   | `BREVO_SENDER_NAME` | Nome do remetente que aparece nos e-mails |
 
-5. Aplique as migrações:
+5. Rode as migrações:
 
    ```bash
    python manage.py migrate
    ```
 
-6. (Opcional) Crie um superusuário para acessar o `/admin/` e o `/painel-gestao/`:
+6. (Opcional) Para entrar no `/admin/` e no `/painel-gestao/`, crie um superusuário:
 
    ```bash
    python manage.py createsuperuser
    ```
 
-7. Inicie o servidor de desenvolvimento:
+7. Suba o servidor de desenvolvimento:
 
    ```bash
    python manage.py runserver
    ```
 
-   A aplicação fica disponível em `http://localhost:8000/`.
+   Depois disso, a aplicação responde em `http://localhost:8000/`.
 
 ## Testes
 
@@ -99,3 +99,8 @@ pytest
 ```bash
 flake8
 ```
+
+## Integração Contínua (CI)
+
+O projeto usa GitHub Actions (`.github/workflows/ci.yml`) para rodar testes automatizados e
+validação de código a cada novo commit e pull request para `main`.

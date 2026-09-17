@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Minhas atividades{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Minhas atividades</h1>
+<div class="row g-4">
+  <section class="col-lg-5" aria-labelledby="titulo-nova">
+    <div class="cartao">
+      <h2 id="titulo-nova" class="h5 mb-3">Nova atividade</h2>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}{{ field.as_field_group }}{% endfor %}
+        <button type="submit" class="btn btn-primary w-100">Cadastrar atividade</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="col-lg-7" aria-labelledby="titulo-lista">
+    <h2 id="titulo-lista" class="h5 mb-3">Atividades cadastradas ({{ atividades|length }})</h2>
+    <ul class="list-unstyled d-grid gap-3 mb-0">
+      {% for atividade in atividades %}
+        <li class="cartao">
+          <h3 class="h6 mb-1">{{ atividade.title }}</h3>
+          <p class="text-body-secondary small mb-2">{{ atividade.category }} · criada em {{ atividade.created_at|date:"d/m/Y" }}</p>
+          {% if atividade.description %}<p class="mb-0">{{ atividade.description|linebreaksbr }}</p>{% endif %}
+        </li>
+      {% empty %}
+        <li class="cartao">Você ainda não cadastrou nenhuma atividade.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}
