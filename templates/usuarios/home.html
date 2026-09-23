@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Início{% endblock %}
+{% block content %}
+<div class="cartao">
+  <h1 class="h3">Olá, {{ user.name }}.</h1>
+  {% if user.profissional and not user.profissional.is_approved %}
+    <p class="mb-0">Sua conta de profissional está aguardando aprovação. Assim que um administrador aprovar, você já pode cadastrar atividades.</p>
+  {% else %}
+    <p class="mb-0">Suas atividades vão aparecer aqui.</p>
+  {% endif %}
+</div>
+{% endblock %}

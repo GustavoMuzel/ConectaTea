@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Criar conta{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6 cartao">
+    <h1 class="h3 mb-4">Criar conta</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+      {{ form.name.as_field_group }}
+      {{ form.email.as_field_group }}
+      {{ form.password1.as_field_group }}
+      {{ form.password2.as_field_group }}
+      {{ form.role.as_field_group }}
+
+      <fieldset id="bloco-profissional" class="border rounded p-3 mb-3">
+        <legend class="fs-5 float-none w-auto px-2">Se o perfil for Profissional</legend>
+        {{ form.especialidade.as_field_group }}
+        {{ form.registro_profissional.as_field_group }}
+      </fieldset>
+
+      <fieldset id="bloco-aluno" class="border rounded p-3 mb-3">
+        <legend class="fs-5 float-none w-auto px-2">Se o perfil for Aluno</legend>
+        {{ form.profissional.as_field_group }}
+        {{ form.birth_date.as_field_group }}
+        {{ form.guardian_name.as_field_group }}
+        {{ form.guardian_phone.as_field_group }}
+        {{ form.guardian_email.as_field_group }}
+        {{ form.consentimento_responsavel.as_field_group }}
+      </fieldset>
+
+      <button type="submit" class="btn btn-primary w-100">Criar conta</button>
+    </form>
+    <p class="mt-3 mb-0">Já tem conta? <a href="{% url 'login' %}">Entrar</a></p>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var radiosPerfil = document.querySelectorAll('input[name="role"]');
+    var blocoProfissional = document.getElementById('bloco-profissional');
+    var blocoAluno = document.getElementById('bloco-aluno');
+
+    function atualizarBlocos() {
+      var marcado = document.querySelector('input[name="role"]:checked');
+      var perfil = marcado ? marcado.value : null;
+      blocoProfissional.classList.toggle('d-none', perfil !== 'profissional');
+      blocoAluno.classList.toggle('d-none', perfil !== 'aluno');
+    }
+
+    radiosPerfil.forEach(function (radio) {
+      radio.addEventListener('change', atualizarBlocos);
+    });
+    atualizarBlocos();
+  });
+</script>
+{% endblock %}

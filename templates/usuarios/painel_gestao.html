@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Painel de Gestão{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Painel de Gestão</h1>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="cartao text-center h-100">
+      <p class="display-6 fw-bold mb-1">{{ total_alunos_ativos }}</p>
+      <p class="mb-0 text-body-secondary">Alunos ativos</p>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="cartao text-center h-100">
+      <p class="display-6 fw-bold mb-1">{{ total_profissionais_aprovados }}</p>
+      <p class="mb-0 text-body-secondary">Profissionais aprovados</p>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="cartao text-center h-100">
+      <p class="display-6 fw-bold mb-1">{{ total_profissionais_pendentes }}</p>
+      <p class="mb-0 text-body-secondary">Aguardando aprovação</p>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="cartao text-center h-100">
+      <p class="display-6 fw-bold mb-1">{{ total_atividades }}</p>
+      <p class="mb-0 text-body-secondary">Atividades cadastradas</p>
+    </div>
+  </div>
+</div>
+
+<section class="mb-4" aria-labelledby="titulo-pendentes">
+  <h2 id="titulo-pendentes" class="h5 mb-3">Ações pendentes</h2>
+  <ul class="list-unstyled d-grid gap-3 mb-0">
+    {% for profissional in profissionais_pendentes %}
+      <li class="cartao d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <p class="fw-semibold mb-0">{{ profissional.user.name }}</p>
+          <p class="text-body-secondary small mb-0">{{ profissional.especialidade }} · {{ profissional.user.email }}</p>
+        </div>
+        <form method="post" action="{% url 'aprovar_profissional_gestao' profissional.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary">Aprovar conta</button>
+        </form>
+      </li>
+    {% empty %}
+      <li class="cartao">Nenhum profissional aguardando aprovação.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section aria-labelledby="titulo-acesso-completo">
+  <h2 id="titulo-acesso-completo" class="h5 mb-3">Acesso completo</h2>
+  <p class="text-body-secondary">Para edições mais detalhadas, use as telas administrativas do Django.</p>
+  <div class="d-flex flex-wrap gap-3">
+    <a class="btn btn-outline-primary" href="{% url 'admin:usuarios_user_changelist' %}">Usuários</a>
+    <a class="btn btn-outline-primary" href="{% url 'admin:usuarios_profissional_changelist' %}">Profissionais</a>
+    <a class="btn btn-outline-primary" href="{% url 'admin:usuarios_aluno_changelist' %}">Alunos</a>
+    <a class="btn btn-outline-primary" href="{% url 'admin:atividades_atividade_changelist' %}">Atividades</a>
+  </div>
+</section>
+{% endblock %}
