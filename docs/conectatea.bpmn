@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   id="ConectaTEA_BPMN"
+                   targetNamespace="http://conectatea.example.com">
+
+  <!-- PROCESSO 1: CADASTRO E AUTENTICAÇÃO -->
+  <bpmn:process id="ProcessoCadastro" name="Cadastro e Autenticação" isExecutable="true">
+    
+    <bpmn:startEvent id="StartCadastro" name="Visitante acessa sistema"/>
+    
+    <bpmn:sequenceFlow id="FlowCadastroStart" sourceRef="StartCadastro" targetRef="GatewayPerfil"/>
+    
+    <bpmn:exclusiveGateway id="GatewayPerfil" name="Qual o perfil?"/>
+    
+    <!-- Fluxo ALUNO -->
+    <bpmn:sequenceFlow id="FlowAluno" sourceRef="GatewayPerfil" targetRef="TaskCadastroAluno" name="Aluno">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">perfil == 'aluno'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:userTask id="TaskCadastroAluno" name="Preencher dados do Aluno">
+      <bpmn:incoming>FlowAluno</bpmn:incoming>
+      <bpmn:outgoing>FlowToConsentimento</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowToConsentimento" sourceRef="TaskCadastroAluno" targetRef="TaskConsentimento"/>
+    
+    <bpmn:userTask id="TaskConsentimento" name="Marcar consentimento do responsável">
+      <bpmn:incoming>FlowToConsentimento</bpmn:incoming>
+      <bpmn:outgoing>FlowVerificaConsentimento</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:exclusiveGateway id="GatewayConsentimento" name="Consentimento marcado?"/>
+    
+    <bpmn:sequenceFlow id="FlowVerificaConsentimento" sourceRef="TaskConsentimento" targetRef="GatewayConsentimento"/>
+    
+    <bpmn:sequenceFlow id="FlowConsentimentoNao" sourceRef="GatewayConsentimento" targetRef="EndCadastroFalha" name="Não"/>
+    
+    <!-- Fluxo PROFISSIONAL -->
+    <bpmn:sequenceFlow id="FlowProfissional" sourceRef="GatewayPerfil" targetRef="TaskCadastroProfissional" name="Profissional">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">perfil == 'profissional'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:userTask id="TaskCadastroProfissional" name="Preencher dados profissionais">
+      <bpmn:incoming>FlowProfissional</bpmn:incoming>
+      <bpmn:outgoing>FlowCriarUser</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowConsentimentoSim" sourceRef="GatewayConsentimento" targetRef="TaskCriarUser" name="Sim"/>
+    <bpmn:sequenceFlow id="FlowCriarUser" sourceRef="TaskCadastroProfissional" targetRef="TaskCriarUser"/>
+    
+    <bpmn:serviceTask id="TaskCriarUser" name="Criar conta com hash de senha">
+      <bpmn:incoming>FlowConsentimentoSim</bpmn:incoming>
+      <bpmn:incoming>FlowCriarUser</bpmn:incoming>
+      <bpmn:outgoing>FlowSalvarRegistro</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="FlowSalvarRegistro" sourceRef="TaskCriarUser" targetRef="TaskSalvarAluno"/>
+    
+    <bpmn:serviceTask id="TaskSalvarAluno" name="Salvar dados (Aluno/Profissional) no BD">
+      <bpmn:incoming>FlowSalvarRegistro</bpmn:incoming>
+      <bpmn:outgoing>FlowEnviarEmail</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="TaskEnviarEmail" name="Enviar e-mail (Brevo API)">
+      <bpmn:incoming>FlowEnviarEmail</bpmn:incoming>
+      <bpmn:outgoing>FlowAposCadastro</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="FlowEnviarEmail" sourceRef="TaskSalvarAluno" targetRef="TaskEnviarEmail"/>
+    
+    <bpmn:sequenceFlow id="FlowAposCadastro" sourceRef="TaskEnviarEmail" targetRef="EndCadastroSucesso"/>
+    
+    <bpmn:endEvent id="EndCadastroSucesso" name="Cadastro realizado com sucesso"/>
+    <bpmn:endEvent id="EndCadastroFalha" name="Cadastro recusado"/>
+    
+  </bpmn:process>
+
+  <!-- PROCESSO 2: FLUXO DE APROVAÇÃO DE PROFISSIONAL -->
+  <bpmn:process id="ProcessoAprovacao" name="Aprovação de Profissional" isExecutable="true">
+    
+    <bpmn:startEvent id="StartAprovacao" name="Profissional cadastrado (is_approved=False)"/>
+    
+    <bpmn:sequenceFlow id="FlowAprovacaoStart" sourceRef="StartAprovacao" targetRef="TaskAdminRevisa"/>
+    
+    <bpmn:userTask id="TaskAdminRevisa" name="Admin/Gestor revisa dados profissionais">
+      <bpmn:incoming>FlowAprovacaoStart</bpmn:incoming>
+      <bpmn:outgoing>FlowAprovacaoGateway</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:exclusiveGateway id="GatewayAprovado" name="Profissional aprovado?"/>
+    <bpmn:sequenceFlow id="FlowAprovacaoGateway" sourceRef="TaskAdminRevisa" targetRef="GatewayAprovado"/>
+    
+    <bpmn:sequenceFlow id="FlowAprovadoSim" sourceRef="GatewayAprovado" targetRef="TaskMarcarAprovado" name="Sim">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">credenciais_válidas AND especialidade_aceita</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:serviceTask id="TaskMarcarAprovado" name="Marcar is_approved = True">
+      <bpmn:incoming>FlowAprovadoSim</bpmn:incoming>
+      <bpmn:outgoing>FlowAprovacaoEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="FlowAprovacaoEnd" sourceRef="TaskMarcarAprovado" targetRef="EndAprovacao"/>
+    
+    <bpmn:sequenceFlow id="FlowAprovadoNao" sourceRef="GatewayAprovado" targetRef="EndAprovacaoRejeitada" name="Não"/>
+    
+    <bpmn:endEvent id="EndAprovacao" name="Profissional ativo (pode cadastrar atividades)"/>
+    <bpmn:endEvent id="EndAprovacaoRejeitada" name="Profissional permanece pendente"/>
+    
+  </bpmn:process>
+
+  <!-- PROCESSO 3: FLUXO DO ALUNO (Tarefas Diárias) -->
+  <bpmn:process id="ProcessoAlunoTarefas" name="Fluxo de Atividades do Aluno" isExecutable="true">
+    
+    <bpmn:startEvent id="StartAluno" name="Aluno faz login"/>
+    
+    <bpmn:sequenceFlow id="FlowAlunoStart" sourceRef="StartAluno" targetRef="TaskViewAtividades"/>
+    
+    <bpmn:userTask id="TaskViewAtividades" name="Visualizar atividades pendentes">
+      <bpmn:incoming>FlowAlunoStart</bpmn:incoming>
+      <bpmn:incoming>FlowOutraAtividadeSim</bpmn:incoming>
+      <bpmn:outgoing>FlowVerificaAtividades</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:exclusiveGateway id="GatewayExisteAtividade" name="Há atividades não concluídas?"/>
+    
+    <bpmn:sequenceFlow id="FlowVerificaAtividades" sourceRef="TaskViewAtividades" targetRef="GatewayExisteAtividade"/>
+    
+    <bpmn:sequenceFlow id="FlowSemAtividades" sourceRef="GatewayExisteAtividade" targetRef="EndAlunoSemTarefas" name="Não">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">atividades.count() == 0</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:userTask id="TaskSelecionaAtividade" name="Seleciona uma atividade da lista">
+      <bpmn:incoming>FlowComAtividades</bpmn:incoming>
+      <bpmn:outgoing>FlowRealizarAtividade</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowComAtividades" sourceRef="GatewayExisteAtividade" targetRef="TaskSelecionaAtividade" name="Sim"/>
+    
+    <bpmn:userTask id="TaskRealizaAtividade" name="Realiza a atividade (interage com conteúdo)">
+      <bpmn:incoming>FlowRealizarAtividade</bpmn:incoming>
+      <bpmn:outgoing>FlowDesejaConcluir</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowRealizarAtividade" sourceRef="TaskSelecionaAtividade" targetRef="TaskRealizaAtividade"/>
+    
+    <bpmn:userTask id="TaskBotaoConcluir" name="Clica botão 'Concluir atividade'">
+      <bpmn:incoming>FlowDesejaConcluir</bpmn:incoming>
+      <bpmn:outgoing>FlowGoConfirmacao</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowDesejaConcluir" sourceRef="TaskRealizaAtividade" targetRef="TaskBotaoConcluir"/>
+    
+    <bpmn:userTask id="TaskConfirmarConclusao" name="Tela de confirmação (previne toque acidental)">
+      <bpmn:incoming>FlowGoConfirmacao</bpmn:incoming>
+      <bpmn:outgoing>FlowConfirmaFinal</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowGoConfirmacao" sourceRef="TaskBotaoConcluir" targetRef="TaskConfirmarConclusao"/>
+    
+    <bpmn:userTask id="TaskClicaConfirmar" name="Clica botão confirmar conclusão">
+      <bpmn:incoming>FlowConfirmaFinal</bpmn:incoming>
+      <bpmn:outgoing>FlowRegistrarConclusao</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowConfirmaFinal" sourceRef="TaskConfirmarConclusao" targetRef="TaskClicaConfirmar"/>
+    
+    <bpmn:serviceTask id="TaskSalvarRegistro" name="Criar/Atualizar RegistroEvolucao (status=CONCLUIDA)">
+      <bpmn:incoming>FlowRegistrarConclusao</bpmn:incoming>
+      <bpmn:outgoing>FlowMostrarMensagem</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="FlowRegistrarConclusao" sourceRef="TaskClicaConfirmar" targetRef="TaskSalvarRegistro"/>
+    
+    <bpmn:userTask id="TaskMensagemSucesso" name="Mostrar mensagem de sucesso ao aluno">
+      <bpmn:incoming>FlowMostrarMensagem</bpmn:incoming>
+      <bpmn:outgoing>FlowRetornaLista</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowMostrarMensagem" sourceRef="TaskSalvarRegistro" targetRef="TaskMensagemSucesso"/>
+    
+    <bpmn:exclusiveGateway id="GatewayOutraAtividade" name="Fazer mais atividades?"/>
+    
+    <bpmn:sequenceFlow id="FlowRetornaLista" sourceRef="TaskMensagemSucesso" targetRef="GatewayOutraAtividade"/>
+    
+    <bpmn:sequenceFlow id="FlowOutraAtividadeSim" sourceRef="GatewayOutraAtividade" targetRef="TaskViewAtividades" name="Sim"/>
+    <bpmn:sequenceFlow id="FlowOutraAtividadeNao" sourceRef="GatewayOutraAtividade" targetRef="EndAlunoFinalizou" name="Não (sair)"/>
+    
+    <bpmn:endEvent id="EndAlunoSemTarefas" name="Sem atividades pendentes"/>
+    <bpmn:endEvent id="EndAlunoFinalizou" name="Aluno encerra sessão"/>
+    
+  </bpmn:process>
+
+  <!-- PROCESSO 4: FLUXO DO PROFISSIONAL (Acompanhamento) -->
+  <bpmn:process id="ProcessoProfissionalAcompanhamento" name="Fluxo de Acompanhamento do Profissional" isExecutable="true">
+    
+    <bpmn:startEvent id="StartProf" name="Profissional logado e aprovado faz login"/>
+    
+    <bpmn:sequenceFlow id="FlowProfStart" sourceRef="StartProf" targetRef="GatewayProfAcao"/>
+    
+    <bpmn:exclusiveGateway id="GatewayProfAcao" name="Qual ação deseja?"/>
+    
+    <!-- Opção 1: Cadastrar Atividade -->
+    <bpmn:sequenceFlow id="FlowCadastrarAtiv" sourceRef="GatewayProfAcao" targetRef="TaskCadastrarAtividade" name="Cadastrar Atividade"/>
+    
+    <bpmn:userTask id="TaskCadastrarAtividade" name="Preencher: título, categoria, descrição">
+      <bpmn:incoming>FlowCadastrarAtiv</bpmn:incoming>
+      <bpmn:outgoing>FlowSalvarAtiv</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:serviceTask id="TaskSalvarAtividade" name="Salvar Atividade no BD">
+      <bpmn:incoming>FlowSalvarAtiv</bpmn:incoming>
+      <bpmn:outgoing>FlowAtividadeSalva</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="FlowSalvarAtiv" sourceRef="TaskCadastrarAtividade" targetRef="TaskSalvarAtividade"/>
+    
+    <bpmn:userTask id="TaskMensagemAtividade" name="Mostrar mensagem: atividade cadastrada">
+      <bpmn:incoming>FlowAtividadeSalva</bpmn:incoming>
+      <bpmn:outgoing>FlowMaisSemAcao</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowAtividadeSalva" sourceRef="TaskSalvarAtividade" targetRef="TaskMensagemAtividade"/>
+    
+    <!-- Opção 2: Ver e Acompanhar Alunos -->
+    <bpmn:sequenceFlow id="FlowVerAlunos" sourceRef="GatewayProfAcao" targetRef="TaskVerAlunos" name="Acompanhar Alunos"/>
+    
+    <bpmn:userTask id="TaskVerAlunos" name="Visualizar lista de alunos vinculados">
+      <bpmn:incoming>FlowVerAlunos</bpmn:incoming>
+      <bpmn:outgoing>FlowSelecionarAluno</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:userTask id="TaskSelecionarAluno" name="Seleciona um aluno">
+      <bpmn:incoming>FlowSelecionarAluno</bpmn:incoming>
+      <bpmn:outgoing>FlowVerEvolucao</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowSelecionarAluno" sourceRef="TaskVerAlunos" targetRef="TaskSelecionarAluno"/>
+    
+    <bpmn:userTask id="TaskVerEvolucao" name="Ver histórico: atividades concluídas + status">
+      <bpmn:incoming>FlowVerEvolucao</bpmn:incoming>
+      <bpmn:outgoing>FlowGatewayAnotar</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowVerEvolucao" sourceRef="TaskSelecionarAluno" targetRef="TaskVerEvolucao"/>
+    
+    <bpmn:exclusiveGateway id="GatewayAnotar" name="Quer anotar observações?"/>
+    
+    <bpmn:sequenceFlow id="FlowGatewayAnotar" sourceRef="TaskVerEvolucao" targetRef="GatewayAnotar"/>
+    
+    <bpmn:sequenceFlow id="FlowAnotarSim" sourceRef="GatewayAnotar" targetRef="TaskAdicionarObservacao" name="Sim"/>
+    
+    <bpmn:userTask id="TaskAdicionarObservacao" name="Editar observações sobre progresso">
+      <bpmn:incoming>FlowAnotarSim</bpmn:incoming>
+      <bpmn:outgoing>FlowSalvarObs</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:serviceTask id="TaskSalvarObservacao" name="Salvar observação no RegistroEvolucao">
+      <bpmn:incoming>FlowSalvarObs</bpmn:incoming>
+      <bpmn:outgoing>FlowMaisSemAcao</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="FlowSalvarObs" sourceRef="TaskAdicionarObservacao" targetRef="TaskSalvarObservacao"/>
+    
+    <bpmn:sequenceFlow id="FlowAnotarNao" sourceRef="GatewayAnotar" targetRef="FlowMaisSemAcao" name="Não"/>
+    
+    <bpmn:exclusiveGateway id="GatewayMaisAcoes" name="Mais ações?"/>
+    
+    <bpmn:sequenceFlow id="FlowMaisSemAcao" sourceRef="TaskMensagemAtividade" targetRef="GatewayMaisAcoes"/>
+    <bpmn:sequenceFlow id="FlowMaisSemAcao2" sourceRef="TaskSalvarObservacao" targetRef="GatewayMaisAcoes"/>
+    
+    <bpmn:sequenceFlow id="FlowMaisSim" sourceRef="GatewayMaisAcoes" targetRef="GatewayProfAcao" name="Sim"/>
+    <bpmn:sequenceFlow id="FlowMaisNao" sourceRef="GatewayMaisAcoes" targetRef="EndProf" name="Não (sair)"/>
+    
+    <bpmn:endEvent id="EndProf" name="Profissional encerra sessão"/>
+    
+  </bpmn:process>
+
+  <!-- PROCESSO 5: FLUXO DO GESTOR/ADMIN -->
+  <bpmn:process id="ProcessoGestorAdmin" name="Fluxo de Gestão e Administração" isExecutable="true">
+    
+    <bpmn:startEvent id="StartGestor" name="Admin/Gestor (is_superuser=True) faz login"/>
+    
+    <bpmn:sequenceFlow id="FlowGestorStart" sourceRef="StartGestor" targetRef="TaskAcessarPainel"/>
+    
+    <bpmn:userTask id="TaskAcessarPainel" name="Acessar Painel de Gestão (/painel-gestao/)">
+      <bpmn:incoming>FlowGestorStart</bpmn:incoming>
+      <bpmn:outgoing>FlowVerPendentes</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:userTask id="TaskVerPendentes" name="Ver profissionais pendentes de aprovação">
+      <bpmn:incoming>FlowVerPendentes</bpmn:incoming>
+      <bpmn:outgoing>FlowVerificaPendentes</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowVerPendentes" sourceRef="TaskAcessarPainel" targetRef="TaskVerPendentes"/>
+    
+    <bpmn:exclusiveGateway id="GatewayTemPendentes" name="Há profissionais pendentes?"/>
+    
+    <bpmn:sequenceFlow id="FlowVerificaPendentes" sourceRef="TaskVerPendentes" targetRef="GatewayTemPendentes"/>
+    
+    <bpmn:sequenceFlow id="FlowTemPendentes" sourceRef="GatewayTemPendentes" targetRef="TaskSelecionarProf" name="Sim"/>
+    
+    <bpmn:userTask id="TaskSelecionarProf" name="Selecionar profissionais para aprovar">
+      <bpmn:incoming>FlowTemPendentes</bpmn:incoming>
+      <bpmn:outgoing>FlowAprovarMassa</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:userTask id="TaskAprovarMassa" name="Clicar botão: Aprovar selecionados">
+      <bpmn:incoming>FlowAprovarMassa</bpmn:incoming>
+      <bpmn:outgoing>FlowExecutarAprovar</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <bpmn:sequenceFlow id="FlowAprovarMassa" sourceRef="TaskSelecionarProf" targetRef="TaskAprovarMassa"/>
+    
+    <bpmn:serviceTask id="TaskExecutarAprovar" name="Executar ação em massa (is_approved=True)">
+      <bpmn:incoming>FlowExecutarAprovar</bpmn:incoming>
+      <bpmn:outgoing>FlowGestorFim</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:sequenceFlow id="FlowExecutarAprovar" sourceRef="TaskAprovarMassa" targetRef="TaskExecutarAprovar"/>
+    
+    <bpmn:sequenceFlow id="FlowSemPendentes" sourceRef="GatewayTemPendentes" targetRef="EndGestor" name="Não"/>
+    
+    <bpmn:sequenceFlow id="FlowGestorFim" sourceRef="TaskExecutarAprovar" targetRef="EndGestor"/>
+    
+    <bpmn:endEvent id="EndGestor" name="Admin encerra sessão"/>
+    
+  </bpmn:process>
+
+  <!-- DIAGRAMAS -->
+  <bpmndi:BPMNDiagram id="Diagram_Cadastro" name="Processo de Cadastro">
+    <bpmndi:BPMNPlane id="Plane_Cadastro" bpmnElement="ProcessoCadastro"/>
+  </bpmndi:BPMNDiagram>
+
+  <bpmndi:BPMNDiagram id="Diagram_Aprovacao" name="Aprovação de Profissional">
+    <bpmndi:BPMNPlane id="Plane_Aprovacao" bpmnElement="ProcessoAprovacao"/>
+  </bpmndi:BPMNDiagram>
+
+  <bpmndi:BPMNDiagram id="Diagram_AlunoAtividades" name="Fluxo de Atividades do Aluno">
+    <bpmndi:BPMNPlane id="Plane_AlunoAtividades" bpmnElement="ProcessoAlunoTarefas"/>
+  </bpmndi:BPMNDiagram>
+
+  <bpmndi:BPMNDiagram id="Diagram_ProfissionalAcompanhamento" name="Acompanhamento do Profissional">
+    <bpmndi:BPMNPlane id="Plane_ProfissionalAcompanhamento" bpmnElement="ProcessoProfissionalAcompanhamento"/>
+  </bpmndi:BPMNDiagram>
+
+  <bpmndi:BPMNDiagram id="Diagram_GestorAdmin" name="Gestão e Administração">
+    <bpmndi:BPMNPlane id="Plane_GestorAdmin" bpmnElement="ProcessoGestorAdmin"/>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>
