@@ -121,12 +121,12 @@ def test_link_do_painel_so_aparece_para_staff_e_superuser(client, cenario):
     assert reverse('painel_gestao') in client.get(reverse('painel_gestao')).content.decode()
 
 
-
 @pytest.mark.django_db
 def test_painel_mostra_grafico_de_conclusoes_por_semana(client, cenario):
     admin = User.objects.create_superuser('admin@ex.com', 'Admin', SENHA)
     atividade = Atividade.objects.get()
-    RegistroEvolucao.objects.create(aluno=cenario['aluno'], atividade=atividade, status=RegistroEvolucao.Status.CONCLUIDA)
+    RegistroEvolucao.objects.create(aluno=cenario['aluno'], atividade=atividade,
+                                    status=RegistroEvolucao.Status.CONCLUIDA)
     client.force_login(admin)
 
     resp = client.get(reverse('painel_gestao'))
