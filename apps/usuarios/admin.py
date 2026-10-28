@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.admin.options import IS_POPUP_VAR
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
@@ -94,6 +94,9 @@ class ProfissionalAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
 
     @admin.action(description='Aprovar profissionais selecionados')
     def aprovar_profissionais(self, request: HttpRequest, queryset: QuerySet) -> None:
+        if not self.has_change_permission(request):  # staff só de leitura não aprova (RF05/RN01)
+            self.message_user(request, 'Você não tem permissão para aprovar profissionais.', messages.ERROR)
+            return
         total = queryset.update(is_approved=True)
         self.message_user(request, f'{total} profissional(is) aprovado(s).')
 

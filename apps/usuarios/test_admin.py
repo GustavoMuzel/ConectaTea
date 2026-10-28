@@ -134,6 +134,28 @@ def test_aprovar_profissionais_em_massa(client, dados):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize('perms, aprovados', [
+    (['view_profissional'], 0),
+    (['view_profissional', 'change_profissional'], 2),
+])
+def test_aprovar_em_massa_exige_change_profissional(client, dados, perms, aprovados):
+    pendentes = [
+        Profissional.objects.create(
+            user=User.objects.create_user(f'p{i}@ex.com', f'P{i}', SENHA, role=User.Role.PROFISSIONAL),
+            especialidade='Pedagogia',
+        ).pk
+        for i in range(2)
+    ]
+    _staff(client, *perms)
+    resp = client.post(reverse('admin:usuarios_profissional_changelist'),
+                       {'action': 'aprovar_profissionais', '_selected_action': pendentes}, follow=True)
+
+    assert Profissional.objects.filter(pk__in=pendentes, is_approved=True).count() == aprovados
+    sem_permissao = 'Você não tem permissão para aprovar profissionais.' in resp.content.decode()
+    assert sem_permissao is (aprovados == 0)
+
+
+@pytest.mark.django_db
 def test_desativar_aluno_exige_change_user(client, dados):
     _staff(client, 'view_aluno', 'delete_aluno')
     url = reverse('admin:usuarios_aluno_delete', args=[dados['aluno'].pk])
