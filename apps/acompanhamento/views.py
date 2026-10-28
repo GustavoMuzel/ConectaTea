@@ -2,15 +2,17 @@ from collections import Counter
 
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, Exists, OuterRef
+from django.db.models import Count, Exists, Max, OuterRef
 from django.db.models.functions import TruncWeek
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView, FormView, ListView, TemplateView
 
 from apps.atividades.models import Atividade
 from apps.usuarios.mixins import AlunoRequiredMixin, ProfissionalRequiredMixin
+from apps.usuarios.models import Aluno
 
 from .forms import DistribuicaoAtividadeForm
 from .models import Atribuicao, RegistroEvolucao
@@ -57,9 +59,21 @@ class ConcluirAtividadeView(AlunoRequiredMixin, View):
         # Só atividades do próprio profissional: id de outra atividade dá 404.
         atividade = get_object_or_404(atividades_do_aluno(aluno), pk=pk)
         with transaction.atomic():
-            _, criado = RegistroEvolucao.objects.get_or_create(
-                aluno=aluno, atividade=atividade, status=RegistroEvolucao.Status.CONCLUIDA,
-            )
+            # Trava o aluno: dois cliques seguidos não geram duas conclusões.
+            Aluno.objects.select_for_update().get(pk=aluno.pk)
+            registros = RegistroEvolucao.objects.filter(aluno=aluno, atividade=atividade)
+            refazendo = registros.filter(status=RegistroEvolucao.Status.EM_ANDAMENTO).first()
+            criado = True
+            if refazendo:  # tentativa aberta por "Fazer de novo": é ela que termina agora
+                refazendo.status = RegistroEvolucao.Status.CONCLUIDA
+                refazendo.data_realizacao = timezone.now()
+                refazendo.save(update_fields=['status', 'data_realizacao'])
+            elif registros.filter(status=RegistroEvolucao.Status.CONCLUIDA).exists():
+                criado = False
+            else:
+                RegistroEvolucao.objects.create(
+                    aluno=aluno, atividade=atividade, status=RegistroEvolucao.Status.CONCLUIDA,
+                )
             # Distribuída: vira CONCLUIDA. Sem distribuição prévia, nasce já concluída (a unicidade evita duplicata).
             Atribuicao.objects.update_or_create(
                 aluno=aluno, atividade=atividade, defaults={'status': Atribuicao.Status.CONCLUIDA},
@@ -70,6 +84,41 @@ class ConcluirAtividadeView(AlunoRequiredMixin, View):
         else:
             messages.info(request, f'Esta atividade já estava concluída: {atividade.title}.')
         return redirect('aluno_atividades')
+
+
+class HistoricoAlunoView(AlunoRequiredMixin, ListView):
+    """Atividades que o aluno já concluiu, com o total de tentativas e a data da última."""
+
+    template_name = 'acompanhamento/historico_aluno.html'
+    context_object_name = 'atividades'
+
+    def get_queryset(self):
+        aluno = self.request.user.aluno
+        # Mesma regra da lista: atividade de profissional revogado/desativado não é entregue (nem refeita).
+        return RegistroEvolucao.objects.filter(
+            aluno=aluno, status=RegistroEvolucao.Status.CONCLUIDA, atividade__in=atividades_do_aluno(aluno),
+        ).values('atividade', 'atividade__title', 'atividade__category').annotate(
+            tentativas=Count('pk'), ultima=Max('data_realizacao'),
+        ).order_by('-ultima', 'atividade__title')
+
+
+class RefazerAtividadeView(AlunoRequiredMixin, View):
+    """Abre uma nova tentativa (em andamento) e leva o aluno à tela de confirmação."""
+
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        aluno = request.user.aluno
+        concluidas = RegistroEvolucao.objects.filter(
+            aluno=aluno, status=RegistroEvolucao.Status.CONCLUIDA,
+        ).values('atividade')
+        # Só refaz o que já concluiu, de um profissional ativo; o resto dá 404.
+        atividade = get_object_or_404(atividades_do_aluno(aluno).filter(pk__in=concluidas), pk=pk)
+        # Já havendo uma tentativa aberta, ela é retomada (a constraint garante uma só).
+        RegistroEvolucao.objects.get_or_create(
+            aluno=aluno, atividade=atividade, status=RegistroEvolucao.Status.EM_ANDAMENTO,
+        )
+        return redirect('confirmar_conclusao', pk=atividade.pk)
 
 
 class DistribuirAtividadeView(ProfissionalRequiredMixin, FormView):

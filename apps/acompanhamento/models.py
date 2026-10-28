@@ -23,10 +23,10 @@ class RegistroEvolucao(models.Model):
         verbose_name = 'registro de evolução'
         verbose_name_plural = 'registros de evolução'
         constraints = [
-            # Duplo clique ou duas abas não geram duas conclusões da mesma atividade.
+            # O aluno pode refazer (várias conclusões), mas só tem uma tentativa em andamento por atividade.
             models.UniqueConstraint(
-                fields=['aluno', 'atividade'], condition=models.Q(status='concluida'),
-                name='uma_conclusao_por_aluno_atividade',
+                fields=['aluno', 'atividade'], condition=models.Q(status='em_andamento'),
+                name='uma_em_andamento_por_aluno_atividade',
             ),
         ]
 

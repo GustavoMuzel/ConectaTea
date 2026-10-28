@@ -1,7 +1,6 @@
 import datetime
 
 import pytest
-from django.db import IntegrityError
 from django.urls import reverse
 
 from apps.atividades.models import Atividade
@@ -130,7 +129,8 @@ def test_registro_nao_concluido_mantem_atividade_na_lista(client, cenario, statu
     assert cenario['minha1'] in client.get(LISTA).context['atividades']
 
     _concluir(client, cenario['minha1'])
-    assert RegistroEvolucao.objects.count() == 2  # histórico anterior preservado
+    # Pendente fica no histórico e ganha uma conclusão; a tentativa em andamento é a própria conclusão.
+    assert RegistroEvolucao.objects.count() == (1 if status == 'em_andamento' else 2)
     assert cenario['minha1'] not in client.get(LISTA).context['atividades']
 
 
@@ -144,11 +144,11 @@ def test_concluir_duas_vezes_nao_duplica(client, cenario):
 
 
 @pytest.mark.django_db
-def test_banco_barra_segunda_conclusao(cenario):
+def test_banco_permite_refazer_varias_conclusoes(cenario):
     dados = {'aluno': cenario['aluno'], 'atividade': cenario['minha1'], 'status': 'concluida'}
     RegistroEvolucao.objects.create(**dados)
-    with pytest.raises(IntegrityError):
-        RegistroEvolucao.objects.create(**dados)
+    RegistroEvolucao.objects.create(**dados)
+    assert RegistroEvolucao.objects.count() == 2
 
 
 @pytest.mark.django_db
