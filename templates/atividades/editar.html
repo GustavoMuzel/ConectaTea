@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Editar atividade{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Editar atividade</h1>
+<section class="cartao" aria-labelledby="titulo-editar">
+  <h2 id="titulo-editar" class="h5 mb-3">{{ object.title }}</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}{{ field.as_field_group }}{% endfor %}
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{% url 'painel' %}" class="btn btn-link">Cancelar</a>
+  </form>
+</section>
+{% endblock %}

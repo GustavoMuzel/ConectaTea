@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import CreateView, DetailView, ListView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from apps.acompanhamento.models import RegistroEvolucao
 from apps.usuarios.mixins import ProfissionalRequiredMixin
@@ -26,6 +26,33 @@ class PainelView(ProfissionalRequiredMixin, CreateView):
         form.instance.profissional = self.request.user.profissional
         messages.success(self.request, f'Atividade "{form.instance.title}" cadastrada.')
         return super().form_valid(form)
+
+
+class AtividadeUpdateView(ProfissionalRequiredMixin, UpdateView):
+    form_class = AtividadeForm
+    template_name = 'atividades/editar.html'
+    success_url = reverse_lazy('painel')
+
+    def get_queryset(self):
+        # Só atividades do próprio profissional: id de outra atividade dá 404.
+        return self.request.user.profissional.atividades.all()
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Atividade "{form.instance.title}" atualizada.')
+        return super().form_valid(form)
+
+
+class ArquivarAtividadeView(ProfissionalRequiredMixin, View):
+    """Arquivada some da distribuição (RF07), mas continua no painel e no histórico dos alunos."""
+
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        atividade = get_object_or_404(request.user.profissional.atividades, pk=pk)
+        atividade.arquivada = True
+        atividade.save(update_fields=['arquivada'])
+        messages.success(request, f'Atividade "{atividade.title}" arquivada.')
+        return redirect('painel')
 
 
 class AlunosDoProfissionalView(ProfissionalRequiredMixin, ListView):

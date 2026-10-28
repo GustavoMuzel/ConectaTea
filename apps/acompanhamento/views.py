@@ -56,9 +56,15 @@ class ConcluirAtividadeView(AlunoRequiredMixin, View):
         aluno = request.user.aluno
         # Só atividades do próprio profissional: id de outra atividade dá 404.
         atividade = get_object_or_404(atividades_do_aluno(aluno), pk=pk)
-        _, criado = RegistroEvolucao.objects.get_or_create(
-            aluno=aluno, atividade=atividade, status=RegistroEvolucao.Status.CONCLUIDA,
-        )
+        with transaction.atomic():
+            _, criado = RegistroEvolucao.objects.get_or_create(
+                aluno=aluno, atividade=atividade, status=RegistroEvolucao.Status.CONCLUIDA,
+            )
+            # Distribuída: vira CONCLUIDA. Sem distribuição prévia, nasce já concluída (a unicidade evita duplicata).
+            Atribuicao.objects.update_or_create(
+                aluno=aluno, atividade=atividade, defaults={'status': Atribuicao.Status.CONCLUIDA},
+                create_defaults={'profissional': atividade.profissional, 'status': Atribuicao.Status.CONCLUIDA},
+            )
         if criado:
             messages.success(request, f'Atividade concluída: {atividade.title}.')
         else:
@@ -123,7 +129,7 @@ class DashboardProfissionalView(ProfissionalRequiredMixin, TemplateView):
             for linha in por_aluno
         ]
         kwargs['total_alunos'] = profissional.alunos.count()
-        # Nada marca Atribuicao como concluída ainda (RF08): quem já concluiu deixa de ser pendente aqui.
+        # ConcluirAtividadeView já marca a Atribuicao como CONCLUIDA; o Exists() cobre só atribuições antigas.
         kwargs['total_pendentes'] = Atribuicao.objects.filter(
             profissional=profissional, status=Atribuicao.Status.PENDENTE,
         ).exclude(Exists(concluidas.filter(aluno=OuterRef('aluno'), atividade=OuterRef('atividade')))).count()
