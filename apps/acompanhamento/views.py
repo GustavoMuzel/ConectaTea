@@ -1,9 +1,13 @@
+from collections import Counter
+
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Count, Exists, OuterRef
+from django.db.models.functions import TruncWeek
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import DetailView, FormView, ListView
+from django.views.generic import DetailView, FormView, ListView, TemplateView
 
 from apps.atividades.models import Atividade
 from apps.usuarios.mixins import AlunoRequiredMixin, ProfissionalRequiredMixin
@@ -94,3 +98,39 @@ class DistribuirAtividadeView(ProfissionalRequiredMixin, FormView):
         if criadas < total:
             messages.warning(self.request, 'Alguns alunos já tinham esta atividade e foram mantidos como estavam.')
         return super().form_valid(form)
+
+
+class DashboardProfissionalView(ProfissionalRequiredMixin, TemplateView):
+    """Números e gráficos de conclusões, só dos alunos vinculados ao profissional logado."""
+
+    template_name = 'acompanhamento/dashboard_profissional.html'
+
+    def get_context_data(self, **kwargs):
+        profissional = self.request.user.profissional
+        # Alunos inativos entram, como na tela "Meus alunos": o histórico não some com o soft delete.
+        concluidas = RegistroEvolucao.objects.filter(
+            aluno__profissional=profissional, status=RegistroEvolucao.Status.CONCLUIDA,
+        )
+        por_semana = concluidas.annotate(semana=TruncWeek('data_realizacao')).values('semana').annotate(
+            total=Count('pk')).order_by('semana')
+        por_aluno = list(concluidas.values('aluno', 'aluno__user__name').annotate(total=Count('pk')).order_by(
+            '-total', 'aluno__user__name'))
+        homonimos = Counter(linha['aluno__user__name'] for linha in por_aluno)
+        kwargs['semanas'] = [(linha['semana'].strftime('%d/%m/%Y'), linha['total']) for linha in por_semana]
+        kwargs['alunos'] = [
+            (linha['aluno__user__name'] if homonimos[linha['aluno__user__name']] == 1
+             else f"{linha['aluno__user__name']} (#{linha['aluno']})", linha['total'])
+            for linha in por_aluno
+        ]
+        kwargs['total_alunos'] = profissional.alunos.count()
+        # Nada marca Atribuicao como concluída ainda (RF08): quem já concluiu deixa de ser pendente aqui.
+        kwargs['total_pendentes'] = Atribuicao.objects.filter(
+            profissional=profissional, status=Atribuicao.Status.PENDENTE,
+        ).exclude(Exists(concluidas.filter(aluno=OuterRef('aluno'), atividade=OuterRef('atividade')))).count()
+        kwargs['total_concluidas'] = sum(total for _, total in kwargs['alunos'])
+        # json_script serializa; aqui vão só listas e dicts simples.
+        kwargs['dados'] = {
+            grupo: {'rotulos': [rotulo for rotulo, _ in pares], 'valores': [total for _, total in pares]}
+            for grupo, pares in (('semanas', kwargs['semanas']), ('alunos', kwargs['alunos']))
+        }
+        return super().get_context_data(**kwargs)

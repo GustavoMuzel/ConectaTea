@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Minhas atividades{% endblock %}
 {% block content %}
-<h1 class="h3 mb-4">Minhas atividades</h1>
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <h1 class="h3 mb-0">Minhas atividades</h1>
+  <a href="{% url 'dashboard_profissional' %}" class="btn btn-outline-primary">Ver dashboard</a>
+</div>
 <div class="row g-4">
   <section class="col-lg-5" aria-labelledby="titulo-nova">
     <div class="cartao">
