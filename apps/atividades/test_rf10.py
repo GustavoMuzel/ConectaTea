@@ -82,7 +82,6 @@ def test_concluir_sem_distribuicao_previa_cria_atribuicao_concluida(client, cena
     assert atribuicao.status == Atribuicao.Status.CONCLUIDA
 
 
-
 @pytest.mark.django_db
 def test_visualizar_evolucao_registra_log_de_acesso(client, cenario):
     client.force_login(cenario['prof'].user)

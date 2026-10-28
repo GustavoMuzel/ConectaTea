@@ -107,7 +107,6 @@ class Anotacao(models.Model):
         return f'{self.autor} sobre {self.aluno} ({self.get_visibilidade_display()})'
 
 
-
 class LogAcesso(models.Model):
     """Auditoria de acesso a dados de um aluno, p.ex. o profissional vendo o histórico dele (RF10, RNF05)."""
 
