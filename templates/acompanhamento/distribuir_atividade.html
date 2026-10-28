@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Distribuir atividade{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Distribuir atividade</h1>
+<section class="cartao" aria-labelledby="titulo-distribuir">
+  <h2 id="titulo-distribuir" class="h5 mb-3">Escolha os alunos</h2>
+  {% if form.fields.alunos.queryset.exists %}
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      {% for field in form %}{{ field.as_field_group }}{% endfor %}
+      <button type="submit" class="btn btn-primary">Distribuir</button>
+      <a href="{% url 'painel' %}" class="btn btn-link">Voltar</a>
+    </form>
+  {% else %}
+    <p>Você ainda não tem alunos vinculados.</p>
+    <a href="{% url 'painel' %}" class="btn btn-link">Voltar</a>
+  {% endif %}
+</section>
+{% endblock %}

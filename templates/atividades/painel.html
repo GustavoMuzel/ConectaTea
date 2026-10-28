@@ -21,7 +21,10 @@
         <li class="cartao">
           <h3 class="h6 mb-1">{{ atividade.title }}</h3>
           <p class="text-body-secondary small mb-2">{{ atividade.category }} · criada em {{ atividade.created_at|date:"d/m/Y" }}</p>
-          {% if atividade.description %}<p class="mb-0">{{ atividade.description|linebreaksbr }}</p>{% endif %}
+          {% if atividade.description %}<p class="mb-2">{{ atividade.description|linebreaksbr }}</p>{% endif %}
+          {% if not atividade.arquivada %}
+            <a href="{% url 'distribuir_atividade' atividade.pk %}" class="btn btn-sm btn-outline-primary">Distribuir</a>
+          {% endif %}
         </li>
       {% empty %}
         <li class="cartao">Você ainda não cadastrou nenhuma atividade.</li>

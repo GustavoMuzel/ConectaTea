@@ -9,6 +9,7 @@ class Atividade(models.Model):
     title = models.CharField('título', max_length=150)
     description = models.TextField('descrição', blank=True)
     category = models.CharField('categoria', max_length=50)
+    arquivada = models.BooleanField(default=False)
     created_at = models.DateTimeField('criada em', auto_now_add=True)
 
     class Meta:
