@@ -20,7 +20,10 @@
           <a class="btn btn-outline-primary" href="{% url 'painel' %}">Minhas atividades</a>
           <a class="btn btn-outline-primary" href="{% url 'alunos_profissional' %}">Meus alunos</a>
         {% endif %}
-        {% if user.is_aluno %}<a class="btn btn-outline-primary" href="{% url 'aluno_atividades' %}">Minhas atividades</a>{% endif %}
+        {% if user.is_aluno %}
+          <a class="btn btn-outline-primary" href="{% url 'aluno_atividades' %}">Minhas atividades</a>
+          <a class="btn btn-outline-primary" href="{% url 'historico_aluno' %}">Meu histórico</a>
+        {% endif %}
         {% if user.is_superuser or user.is_staff %}<a class="btn btn-outline-primary" href="{% url 'painel_gestao' %}">Painel de Gestão</a>{% endif %}
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}

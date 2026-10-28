@@ -1,4 +1,6 @@
 from django.contrib import messages
+from django.db.models import F, Window
+from django.db.models.functions import RowNumber
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views import View
@@ -77,9 +79,12 @@ class EvolucaoAlunoView(ProfissionalRequiredMixin, DetailView):
         return self.request.user.profissional.alunos.select_related('user')
 
     def get_context_data(self, **kwargs):
+        # "tentativa" numera as conclusões de cada atividade, da primeira para a última.
         registros = RegistroEvolucao.objects.filter(
             aluno=self.object, status=RegistroEvolucao.Status.CONCLUIDA,
-        ).select_related('atividade').order_by('-data_realizacao')
+        ).annotate(
+            tentativa=Window(RowNumber(), partition_by=F('atividade'), order_by=['data_realizacao', 'pk']),
+        ).select_related('atividade').order_by('-data_realizacao', '-pk')
         kwargs['registros'] = [(registro, ObservacaoForm(instance=registro)) for registro in registros]
         return super().get_context_data(**kwargs)
 

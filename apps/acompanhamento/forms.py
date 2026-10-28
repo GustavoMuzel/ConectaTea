@@ -5,6 +5,8 @@ from apps.atividades.models import Atividade
 from apps.usuarios.forms import BootstrapMixin
 from apps.usuarios.models import Aluno
 
+from .models import Anotacao
+
 
 class DistribuicaoAtividadeForm(BootstrapMixin, forms.Form):
     atividade = forms.ModelChoiceField(Atividade.objects.none(), label='Atividade')
@@ -26,3 +28,12 @@ class DistribuicaoAtividadeForm(BootstrapMixin, forms.Form):
         if prazo and prazo < timezone.localdate():
             raise forms.ValidationError('O prazo não pode ser anterior a hoje.')
         return prazo
+
+
+class AnotacaoForm(BootstrapMixin, forms.ModelForm):
+    class Meta:
+        model = Anotacao
+        fields = ['texto', 'visibilidade']
+        labels = {'texto': 'Anotação', 'visibilidade': 'Quem pode ler'}
+        help_texts = {'visibilidade': 'Privada: só você lê. Compartilhada: a outra pessoa do vínculo também lê.'}
+        widgets = {'texto': forms.Textarea(attrs={'rows': 4}), 'visibilidade': forms.RadioSelect}

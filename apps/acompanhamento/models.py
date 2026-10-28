@@ -2,7 +2,7 @@ from django.db import models
 from django.utils import timezone
 
 from apps.atividades.models import Atividade
-from apps.usuarios.models import Aluno, Profissional
+from apps.usuarios.models import Aluno, Profissional, User
 
 
 class RegistroEvolucao(models.Model):
@@ -62,3 +62,46 @@ class Atribuicao(models.Model):
 
     def __str__(self):
         return f'{self.aluno} - {self.atividade} ({self.get_status_display()})'
+
+
+class AnotacaoQuerySet(models.QuerySet):
+    def visiveis_para(self, usuario, aluno):
+        """Anotações sobre o aluno que `usuario` (o aluno ou o profissional dele) pode ler: as suas, mais
+        as compartilhadas pelo outro participante do vínculo atual. Quem não é participante não lê nada."""
+        profissional_uid = aluno.profissional.user_id
+        if usuario.pk == aluno.user_id:
+            outro_id = profissional_uid
+        elif usuario.pk == profissional_uid:
+            outro_id = aluno.user_id
+        else:
+            return self.none()
+        return self.filter(aluno=aluno).filter(
+            models.Q(autor=usuario) | models.Q(autor_id=outro_id, visibilidade=Anotacao.Visibilidade.COMPARTILHADA),
+        )
+
+
+class Anotacao(models.Model):
+    """Texto sobre um aluno, escrito por ele ou pelo profissional (RF11)."""
+
+    class Visibilidade(models.TextChoices):
+        PRIVADA = 'privada', 'Privada'
+        COMPARTILHADA = 'compartilhada', 'Compartilhada'
+
+    id = models.BigAutoField(primary_key=True, db_column='anotacao_id')
+    autor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='anotacoes')
+    aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name='anotacoes')
+    texto = models.TextField()
+    visibilidade = models.CharField(max_length=20, choices=Visibilidade.choices, default=Visibilidade.PRIVADA)
+    criado_em = models.DateTimeField('criada em', auto_now_add=True)
+    atualizado_em = models.DateTimeField('atualizada em', auto_now=True)
+
+    objects = AnotacaoQuerySet.as_manager()
+
+    class Meta:
+        db_table = 'anotacoes'
+        verbose_name = 'anotação'
+        verbose_name_plural = 'anotações'
+        ordering = ['-criado_em', '-pk']
+
+    def __str__(self):
+        return f'{self.autor} sobre {self.aluno} ({self.get_visibilidade_display()})'

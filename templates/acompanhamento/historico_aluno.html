@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Meu histórico{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <h1 class="h3 mb-0">Meu histórico</h1>
+  <a href="{% url 'anotacoes_aluno' %}" class="btn btn-outline-primary">Minhas anotações</a>
+</div>
+<ul class="list-unstyled d-grid gap-3 mb-0">
+  {% for atividade in atividades %}
+    <li class="cartao">
+      <h2 class="h5 mb-1">{{ atividade.atividade__title }}</h2>
+      <p class="text-body-secondary mb-3">
+        {{ atividade.atividade__category }} ·
+        {{ atividade.tentativas }} vez{{ atividade.tentativas|pluralize:"es" }} ·
+        última em {{ atividade.ultima|date:"d/m/Y" }}
+      </p>
+      <form method="post" action="{% url 'refazer_atividade' atividade.atividade %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-lg w-100">
+          Fazer de novo<span class="visually-hidden">: {{ atividade.atividade__title }}</span>
+        </button>
+      </form>
+    </li>
+  {% empty %}
+    <li class="cartao">Você ainda não concluiu nenhuma atividade.</li>
+  {% endfor %}
+</ul>
+<a href="{% url 'aluno_atividades' %}" class="btn btn-link mt-4">Voltar às atividades</a>
+{% endblock %}

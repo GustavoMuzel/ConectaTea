@@ -1,11 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Evolução de {{ aluno.user.name }}{% endblock %}
 {% block content %}
-<h1 class="h3 mb-4">Evolução de {{ aluno.user.name }}</h1>
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <h1 class="h3 mb-0">Evolução de {{ aluno.user.name }}</h1>
+  <a href="{% url 'anotacoes_profissional' aluno.pk %}" class="btn btn-outline-primary">Anotações</a>
+</div>
 <ul class="list-unstyled d-grid gap-3 mb-0">
   {% for registro, form in registros %}
     <li class="cartao">
-      <h2 class="h6 mb-1">{{ registro.atividade.title }}</h2>
+      <h2 class="h6 mb-1">{{ registro.atividade.title }} <span class="text-body-secondary fw-normal">· tentativa {{ registro.tentativa }}</span></h2>
       <p class="text-body-secondary small mb-3">Concluída em {{ registro.data_realizacao|date:"d/m/Y H:i" }}</p>
       <form method="post" action="{% url 'salvar_observacao' aluno.pk registro.pk %}">
         {% csrf_token %}
