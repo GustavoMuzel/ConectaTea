@@ -8,7 +8,7 @@
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
   <link rel="stylesheet" href="{% static 'css/conectatea.css' %}">
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100{% if prefs.tamanho_fonte == 'grande' %} font-lg{% elif prefs.tamanho_fonte == 'muito_grande' %} font-xlg{% endif %}{% if prefs.alto_contraste %} high-contrast{% endif %}{% if prefs.reduzir_estimulos %} reduce-stimuli{% endif %}">
   <a class="visually-hidden-focusable" href="#conteudo">Ir para o conteúdo</a>
 
   <header class="border-bottom bg-white">
@@ -20,8 +20,12 @@
           <a class="btn btn-outline-primary" href="{% url 'painel' %}">Minhas atividades</a>
           <a class="btn btn-outline-primary" href="{% url 'alunos_profissional' %}">Meus alunos</a>
         {% endif %}
-        {% if user.is_aluno %}<a class="btn btn-outline-primary" href="{% url 'aluno_atividades' %}">Minhas atividades</a>{% endif %}
+        {% if user.is_aluno %}
+          <a class="btn btn-outline-primary" href="{% url 'aluno_atividades' %}">Minhas atividades</a>
+          <a class="btn btn-outline-primary" href="{% url 'historico_aluno' %}">Meu histórico</a>
+        {% endif %}
         {% if user.is_superuser or user.is_staff %}<a class="btn btn-outline-primary" href="{% url 'painel_gestao' %}">Painel de Gestão</a>{% endif %}
+        <a class="btn btn-outline-primary" href="{% url 'preferencias' %}">Preferências</a>
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}
           <button type="submit" class="btn btn-outline-secondary">Sair</button>

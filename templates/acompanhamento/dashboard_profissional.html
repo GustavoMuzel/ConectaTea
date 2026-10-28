@@ -19,7 +19,7 @@
   <div class="col-12 col-md-4">
     <div class="cartao text-center h-100">
       <p class="display-6 fw-bold mb-1">{{ total_concluidas }}</p>
-      <p class="mb-0 text-body-secondary">Atividades concluídas</p>
+      <p class="mb-0 text-body-secondary">Conclusões de atividades</p>
     </div>
   </div>
 </div>
@@ -73,6 +73,10 @@
     });
   }
   if (window.Chart) {
+    // Texto dos gráficos segue cor e tamanho da página (preferências de acessibilidade).
+    const corpo = getComputedStyle(document.body);
+    Chart.defaults.color = corpo.color;
+    Chart.defaults.font.size = parseFloat(corpo.fontSize) * 0.75;
     barras('grafico-semanas', dados.semanas);
     barras('grafico-alunos', dados.alunos);
   }

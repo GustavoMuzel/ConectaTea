@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Excluir anotação{% endblock %}
+{% block content %}
+<div class="cartao mx-auto" style="max-width: 36rem;">
+  <h1 class="h4 mb-3">Excluir esta anotação?</h1>
+  <p class="mb-4">{{ object.texto|linebreaksbr }}</p>
+  <form method="post" class="d-flex flex-wrap gap-2">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sim, excluir</button>
+    <a href="{{ view.get_success_url }}" class="btn btn-outline-secondary">Não, voltar</a>
+  </form>
+</div>
+{% endblock %}

@@ -22,12 +22,22 @@
     <ul class="list-unstyled d-grid gap-3 mb-0">
       {% for atividade in atividades %}
         <li class="cartao">
-          <h3 class="h6 mb-1">{{ atividade.title }}</h3>
+          <h3 class="h6 mb-1">{{ atividade.title }}{% if atividade.arquivada %} <span class="badge text-bg-secondary">Arquivada</span>{% endif %}</h3>
           <p class="text-body-secondary small mb-2">{{ atividade.category }} · criada em {{ atividade.created_at|date:"d/m/Y" }}</p>
           {% if atividade.description %}<p class="mb-2">{{ atividade.description|linebreaksbr }}</p>{% endif %}
-          {% if not atividade.arquivada %}
-            <a href="{% url 'distribuir_atividade' atividade.pk %}" class="btn btn-sm btn-outline-primary">Distribuir</a>
-          {% endif %}
+          <div class="d-flex flex-wrap gap-2">
+            {% if not atividade.arquivada %}
+              <a href="{% url 'distribuir_atividade' atividade.pk %}" class="btn btn-sm btn-outline-primary">Distribuir</a>
+            {% endif %}
+            <a href="{% url 'editar_atividade' atividade.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+            {% if not atividade.arquivada %}
+              <form method="post" action="{% url 'arquivar_atividade' atividade.pk %}"
+                    onsubmit="return confirm('Arquivar esta atividade? Ela deixa de poder ser distribuída.')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Arquivar</button>
+              </form>
+            {% endif %}
+          </div>
         </li>
       {% empty %}
         <li class="cartao">Você ainda não cadastrou nenhuma atividade.</li>

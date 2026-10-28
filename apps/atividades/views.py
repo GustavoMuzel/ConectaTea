@@ -1,10 +1,12 @@
 from django.contrib import messages
+from django.db.models import F, Window
+from django.db.models.functions import RowNumber
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import CreateView, DetailView, ListView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from apps.acompanhamento.models import RegistroEvolucao
+from apps.acompanhamento.models import LogAcesso, RegistroEvolucao
 from apps.usuarios.mixins import ProfissionalRequiredMixin
 
 from .forms import AtividadeForm, ObservacaoForm
@@ -28,6 +30,33 @@ class PainelView(ProfissionalRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+class AtividadeUpdateView(ProfissionalRequiredMixin, UpdateView):
+    form_class = AtividadeForm
+    template_name = 'atividades/editar.html'
+    success_url = reverse_lazy('painel')
+
+    def get_queryset(self):
+        # Só atividades do próprio profissional: id de outra atividade dá 404.
+        return self.request.user.profissional.atividades.all()
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Atividade "{form.instance.title}" atualizada.')
+        return super().form_valid(form)
+
+
+class ArquivarAtividadeView(ProfissionalRequiredMixin, View):
+    """Arquivada some da distribuição (RF07), mas continua no painel e no histórico dos alunos."""
+
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        atividade = get_object_or_404(request.user.profissional.atividades, pk=pk)
+        atividade.arquivada = True
+        atividade.save(update_fields=['arquivada'])
+        messages.success(request, f'Atividade "{atividade.title}" arquivada.')
+        return redirect('painel')
+
+
 class AlunosDoProfissionalView(ProfissionalRequiredMixin, ListView):
     """Alunos vinculados ao profissional logado."""
 
@@ -45,14 +74,23 @@ class EvolucaoAlunoView(ProfissionalRequiredMixin, DetailView):
     template_name = 'atividades/evolucao_aluno.html'
     context_object_name = 'aluno'
 
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        # Auditoria (RF10/RNF05): só chega aqui se o aluno é do profissional; 403/404 não geram log.
+        LogAcesso.objects.create(user=request.user, aluno=self.object, acao='Visualizou evolução')
+        return response
+
     def get_queryset(self):
         # Só alunos do próprio profissional: id de aluno de outro profissional dá 404.
         return self.request.user.profissional.alunos.select_related('user')
 
     def get_context_data(self, **kwargs):
+        # "tentativa" numera as conclusões de cada atividade, da primeira para a última.
         registros = RegistroEvolucao.objects.filter(
             aluno=self.object, status=RegistroEvolucao.Status.CONCLUIDA,
-        ).select_related('atividade').order_by('-data_realizacao')
+        ).annotate(
+            tentativa=Window(RowNumber(), partition_by=F('atividade'), order_by=['data_realizacao', 'pk']),
+        ).select_related('atividade').order_by('-data_realizacao', '-pk')
         kwargs['registros'] = [(registro, ObservacaoForm(instance=registro)) for registro in registros]
         return super().get_context_data(**kwargs)
 

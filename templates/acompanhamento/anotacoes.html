@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Anotações{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Anotações{% if user.pk != aluno.user_id %} de {{ aluno.user.name }}{% endif %}</h1>
+<div class="row g-4">
+  <section class="col-lg-5" aria-labelledby="titulo-nova">
+    <div class="cartao">
+      <h2 id="titulo-nova" class="h5 mb-3">Nova anotação</h2>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}{{ field.as_field_group }}{% endfor %}
+        <button type="submit" class="btn btn-primary w-100">Salvar anotação</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="col-lg-7" aria-labelledby="titulo-lista">
+    <h2 id="titulo-lista" class="h5 mb-3">Anotações ({{ anotacoes|length }})</h2>
+    <ul class="list-unstyled d-grid gap-3 mb-0">
+      {% for anotacao in anotacoes %}
+        <li class="cartao">
+          <p class="text-body-secondary small mb-2">
+            {{ anotacao.autor.name }} · {{ anotacao.criado_em|date:"d/m/Y H:i" }} ·
+            <span class="badge text-bg-secondary">{{ anotacao.get_visibilidade_display }}</span>
+          </p>
+          <p class="mb-2">{{ anotacao.texto|linebreaksbr }}</p>
+          {% if anotacao.autor_id == user.pk %}
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{% url 'editar_anotacao' anotacao.pk %}" class="btn btn-sm btn-outline-secondary">Editar<span class="visually-hidden"> anotação de {{ anotacao.criado_em|date:"d/m/Y H:i" }}</span></a>
+              <a href="{% url 'excluir_anotacao' anotacao.pk %}" class="btn btn-sm btn-outline-secondary">Excluir<span class="visually-hidden"> anotação de {{ anotacao.criado_em|date:"d/m/Y H:i" }}</span></a>
+            </div>
+          {% endif %}
+        </li>
+      {% empty %}
+        <li class="cartao">Ainda não há anotações.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+<a href="{% if user.pk == aluno.user_id %}{% url 'historico_aluno' %}{% else %}{% url 'evolucao_aluno' aluno.pk %}{% endif %}" class="btn btn-link mt-4">Voltar</a>
+{% endblock %}

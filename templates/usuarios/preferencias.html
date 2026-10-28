@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Preferências{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Preferências de acessibilidade</h1>
+<div class="cartao mx-auto" style="max-width: 36rem;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}{{ field.as_field_group }}{% endfor %}
+    <button type="submit" class="btn btn-primary btn-lg w-100">Salvar preferências</button>
+  </form>
+</div>
+{% endblock %}
