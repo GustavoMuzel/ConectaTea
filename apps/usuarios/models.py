@@ -93,3 +93,27 @@ class Aluno(models.Model):
 
     def __str__(self):
         return self.user.name
+
+
+class PreferenciaAcessibilidade(models.Model):
+    """Ajustes visuais do usuário, aplicados em todas as telas (RF14)."""
+
+    class TamanhoFonte(models.TextChoices):
+        NORMAL = 'normal', 'Normal'
+        GRANDE = 'grande', 'Grande'
+        MUITO_GRANDE = 'muito_grande', 'Muito grande'
+
+    id = models.BigAutoField(primary_key=True, db_column='preferencia_id')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='preferencias')
+    tamanho_fonte = models.CharField('tamanho da letra', max_length=20, choices=TamanhoFonte.choices,
+                                     default=TamanhoFonte.NORMAL)
+    alto_contraste = models.BooleanField('alto contraste', default=False)
+    reduzir_estimulos = models.BooleanField('reduzir estímulos', default=False)
+
+    class Meta:
+        db_table = 'preferencias_acessibilidade'
+        verbose_name = 'preferência de acessibilidade'
+        verbose_name_plural = 'preferências de acessibilidade'
+
+    def __str__(self):
+        return f'Preferências de {self.user.name}'

@@ -73,6 +73,10 @@
     });
   }
   if (window.Chart) {
+    // Texto dos gráficos segue cor e tamanho da página (preferências de acessibilidade).
+    const corpo = getComputedStyle(document.body);
+    Chart.defaults.color = corpo.color;
+    Chart.defaults.font.size = parseFloat(corpo.fontSize) * 0.75;
     barras('grafico-semanas', dados.semanas);
     barras('grafico-alunos', dados.alunos);
   }

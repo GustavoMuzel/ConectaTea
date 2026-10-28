@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import Aluno, Profissional, User
+from .models import Aluno, PreferenciaAcessibilidade, Profissional, User
 
 
 class BootstrapMixin:
@@ -108,3 +108,15 @@ class CadastroForm(BootstrapMixin, BaseUserCreationForm):
                 **{c: dados[c] for c in self.CAMPOS_ALUNO},
             )
         return user
+
+
+class PreferenciasForm(BootstrapMixin, forms.ModelForm):
+    class Meta:
+        model = PreferenciaAcessibilidade
+        fields = ['tamanho_fonte', 'alto_contraste', 'reduzir_estimulos']
+        labels = {
+            'tamanho_fonte': 'Tamanho da letra',
+            'alto_contraste': 'Alto contraste (fundo preto e letras claras)',
+            'reduzir_estimulos': 'Reduzir estímulos (sem sombras e sem enfeites)',
+        }
+        widgets = {'tamanho_fonte': forms.RadioSelect}
