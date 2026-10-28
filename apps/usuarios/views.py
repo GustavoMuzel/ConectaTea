@@ -1,16 +1,22 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.db import transaction
+from django.db.models import Count
+from django.db.models.functions import TruncWeek
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.generic import CreateView, TemplateView, UpdateView
 from rest_framework.generics import RetrieveAPIView
 
+from apps.acompanhamento.models import RegistroEvolucao
 from apps.atividades.models import Atividade
 
 from .forms import CadastroForm, LoginForm, PreferenciasForm
@@ -91,6 +97,16 @@ class AdminDashboardView(GestorRequiredMixin, TemplateView):
         kwargs['total_profissionais_pendentes'] = len(pendentes)
         kwargs['profissionais_pendentes'] = pendentes
         kwargs['total_atividades'] = Atividade.objects.count()
+        # Conclusões do sistema todo por semana, últimos 3 meses (mesmo padrão do dashboard do profissional).
+        desde = timezone.now() - timedelta(days=90)
+        por_semana = RegistroEvolucao.objects.filter(
+            status=RegistroEvolucao.Status.CONCLUIDA, data_realizacao__gte=desde,
+        ).annotate(semana=TruncWeek('data_realizacao')).values('semana').annotate(total=Count('pk')).order_by('semana')
+        kwargs['semanas'] = [(linha['semana'].strftime('%d/%m/%Y'), linha['total']) for linha in por_semana]
+        kwargs['dados'] = {
+            'rotulos': [rotulo for rotulo, _ in kwargs['semanas']],
+            'valores': [total for _, total in kwargs['semanas']],
+        }
         return super().get_context_data(**kwargs)
 
 

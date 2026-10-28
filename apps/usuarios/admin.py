@@ -53,8 +53,8 @@ class SoftDeleteAdminMixin:
         preserved = {'preserved_filters': self.get_preserved_filters(request), 'opts': self.opts}
         return HttpResponseRedirect(add_preserved_filters(preserved, url))
 
-    def get_actions(self, request: HttpRequest) -> dict:
-        actions = super().get_actions(request)
+    def get_actions(self, request: HttpRequest, action_location=admin.ActionLocation.CHANGE_LIST) -> dict:
+        actions = super().get_actions(request, action_location)
         actions.pop('delete_selected', None)
         return actions
 

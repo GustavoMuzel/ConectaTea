@@ -9,10 +9,30 @@ As funcionalidades entregues estão detalhadas em [docs/funcionalidades.md](docs
 ## Stack Tecnológica
 
 - **Python** + **Django**, com views baseadas em classe e autenticação por sessão
-- **SQLite** no desenvolvimento local; a migração para **PostgreSQL** já está encaminhada (o `psycopg2` consta nas dependências)
+- **Banco de Dados:** PostgreSQL 16 (banco oficial de desenvolvimento e testes, configurado via variáveis de ambiente no `.env`). O sistema também possui fallback para SQLite caso o PostgreSQL não esteja disponível no ambiente local.
 - **Bootstrap 5** carregado por CDN, mais um CSS próprio e pequeno (`static/css/conectatea.css`) para controlar os estímulos visuais em detalhe. Não usamos framework de JavaScript: onde é preciso, o JS é puro
 - **Django REST Framework** + **SimpleJWT** na API (`/api/auth/...`)
 - **Brevo** (API REST) para os e-mails transacionais
+
+## Arquitetura do Sistema
+
+O ConectaTEA foi desenvolvido utilizando uma arquitetura **Monolítica** com o framework **Django** (Python). A escolha do monolito se deu pela simplicidade de implantação, coesão do domínio e agilidade no desenvolvimento, características ideais para o escopo do projeto.
+
+A aplicação é dividida internamente em "Apps" do Django para separação de responsabilidades:
+
+- `apps/usuarios`: Autenticação, perfis de acesso (Aluno, Profissional, Gestor) e preferências de acessibilidade.
+- `apps/atividades`: Biblioteca de atividades, edição, arquivamento e distribuição.
+- `apps/acompanhamento`: Registros de evolução, tentativas, anotações e dashboards com gráficos.
+
+**Integrações:**
+
+- **Banco de Dados:** PostgreSQL 16 (banco oficial, configurado via `.env`) com fallback para SQLite.
+- **API:** Django REST Framework (DRF) para rotas de API assíncronas e autenticação JWT.
+- **Serviços Externos:** Integração com a API do Brevo para envio de e-mails transacionais.
+
+**Interface (Front-end):**
+
+O front-end é renderizado no servidor (SSR) utilizando os templates nativos do Django, estilizados com Bootstrap 5 e Chart.js (para os gráficos do dashboard). O sistema adota o princípio de "baixa carga sensorial", com regras de CSS próprias para acessibilidade.
 
 ## Pré-requisitos
 
@@ -102,5 +122,5 @@ flake8
 
 ## Integração Contínua (CI)
 
-O projeto usa GitHub Actions (`.github/workflows/ci.yml`) para rodar testes automatizados e
-validação de código a cada novo commit e pull request para `main`.
+A cada commit ou pull request para `main`, o GitHub Actions (`.github/workflows/ci.yml`)
+roda automaticamente os testes e a validação de código do projeto.

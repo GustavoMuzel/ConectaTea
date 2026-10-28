@@ -3,7 +3,7 @@ import datetime
 import pytest
 from django.urls import reverse
 
-from apps.acompanhamento.models import Atribuicao, RegistroEvolucao
+from apps.acompanhamento.models import Atribuicao, LogAcesso, RegistroEvolucao
 from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import Atividade
@@ -80,3 +80,13 @@ def test_concluir_sem_distribuicao_previa_cria_atribuicao_concluida(client, cena
     atribuicao = Atribuicao.objects.get()
     assert (atribuicao.aluno, atribuicao.profissional) == (cenario['aluno'], cenario['prof'])
     assert atribuicao.status == Atribuicao.Status.CONCLUIDA
+
+
+
+@pytest.mark.django_db
+def test_visualizar_evolucao_registra_log_de_acesso(client, cenario):
+    client.force_login(cenario['prof'].user)
+    assert client.get(reverse('evolucao_aluno', args=[cenario['aluno'].pk])).status_code == 200
+    log = LogAcesso.objects.get()
+    assert (log.user, log.aluno, log.acao) == (cenario['prof'].user, cenario['aluno'], 'Visualizou evolução')
+    assert log.ocorrido_em is not None

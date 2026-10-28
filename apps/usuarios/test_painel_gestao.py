@@ -3,7 +3,9 @@ import datetime
 import pytest
 from django.contrib.auth.models import Permission
 from django.urls import reverse
+from django.utils import timezone
 
+from apps.acompanhamento.models import RegistroEvolucao
 from apps.atividades.models import Atividade
 
 from .models import Aluno, Profissional, User
@@ -117,3 +119,35 @@ def test_link_do_painel_so_aparece_para_staff_e_superuser(client, cenario):
     admin = User.objects.create_superuser('admin@ex.com', 'Admin', SENHA)
     client.force_login(admin)
     assert reverse('painel_gestao') in client.get(reverse('painel_gestao')).content.decode()
+
+
+
+@pytest.mark.django_db
+def test_painel_mostra_grafico_de_conclusoes_por_semana(client, cenario):
+    admin = User.objects.create_superuser('admin@ex.com', 'Admin', SENHA)
+    atividade = Atividade.objects.get()
+    RegistroEvolucao.objects.create(aluno=cenario['aluno'], atividade=atividade, status=RegistroEvolucao.Status.CONCLUIDA)
+    client.force_login(admin)
+
+    resp = client.get(reverse('painel_gestao'))
+
+    assert resp.status_code == 200
+    assert 'canvas' in resp.content.decode()
+    assert resp.context['dados']['valores'] == [1]
+
+
+@pytest.mark.django_db
+def test_painel_grafico_ignora_conclusoes_antigas_e_nao_concluidas(client, cenario):
+    admin = User.objects.create_superuser('admin@ex.com', 'Admin', SENHA)
+    atividade = Atividade.objects.get()
+    antiga = timezone.now() - datetime.timedelta(days=120)
+    RegistroEvolucao.objects.create(aluno=cenario['aluno'], atividade=atividade,
+                                    status=RegistroEvolucao.Status.CONCLUIDA, data_realizacao=antiga)
+    RegistroEvolucao.objects.create(aluno=cenario['aluno'], atividade=atividade,
+                                    status=RegistroEvolucao.Status.EM_ANDAMENTO)
+    client.force_login(admin)
+
+    resp = client.get(reverse('painel_gestao'))
+
+    assert resp.context['dados'] == {'rotulos': [], 'valores': []}
+    assert 'canvas' not in resp.content.decode()

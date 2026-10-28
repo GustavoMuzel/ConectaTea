@@ -6,7 +6,7 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from apps.acompanhamento.models import RegistroEvolucao
+from apps.acompanhamento.models import LogAcesso, RegistroEvolucao
 from apps.usuarios.mixins import ProfissionalRequiredMixin
 
 from .forms import AtividadeForm, ObservacaoForm
@@ -73,6 +73,12 @@ class EvolucaoAlunoView(ProfissionalRequiredMixin, DetailView):
     http_method_names = ['get']
     template_name = 'atividades/evolucao_aluno.html'
     context_object_name = 'aluno'
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        # Auditoria (RF10/RNF05): só chega aqui se o aluno é do profissional; 403/404 não geram log.
+        LogAcesso.objects.create(user=request.user, aluno=self.object, acao='Visualizou evolução')
+        return response
 
     def get_queryset(self):
         # Só alunos do próprio profissional: id de aluno de outro profissional dá 404.

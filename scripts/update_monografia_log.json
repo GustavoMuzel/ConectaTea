@@ -1,0 +1,456 @@
+{
+  "edicoes": [
+    {
+      "id": "T01 título",
+      "status": "aplicada"
+    },
+    {
+      "id": "T02 §1.1.1",
+      "status": "aplicada"
+    },
+    {
+      "id": "T03 §1.1.2 notações",
+      "status": "aplicada"
+    },
+    {
+      "id": "T04 §1.1.2 testes",
+      "status": "aplicada"
+    },
+    {
+      "id": "T05 §1.2",
+      "status": "aplicada"
+    },
+    {
+      "id": "T06 §1.3 Capítulo 7",
+      "status": "aplicada"
+    },
+    {
+      "id": "T07 §3 estereótipo",
+      "status": "aplicada"
+    },
+    {
+      "id": "T08 §3.3.1 artigo",
+      "status": "aplicada"
+    },
+    {
+      "id": "T09 §3.3.1 0..1",
+      "status": "aplicada"
+    },
+    {
+      "id": "T10 §3.3.1 0..*",
+      "status": "aplicada"
+    },
+    {
+      "id": "T11 §3.3.1 Conversa",
+      "status": "aplicada"
+    },
+    {
+      "id": "T12 §3.4.2 valida",
+      "status": "aplicada"
+    },
+    {
+      "id": "T13 §3.4.6 vê",
+      "status": "aplicada"
+    },
+    {
+      "id": "T14 título cap. 4",
+      "status": "aplicada"
+    },
+    {
+      "id": "T15 Fonte Fig. 2",
+      "status": "aplicada"
+    },
+    {
+      "id": "T16 título 2.2 fundido",
+      "status": "aplicada"
+    },
+    {
+      "id": "T17 título 2.3 fundido",
+      "status": "aplicada"
+    },
+    {
+      "id": "T18 2.9→2.10",
+      "status": "aplicada"
+    },
+    {
+      "id": "T19 2.8→2.9",
+      "status": "aplicada"
+    },
+    {
+      "id": "T20 2.7→2.8",
+      "status": "aplicada"
+    },
+    {
+      "id": "T21 2.6→2.7",
+      "status": "aplicada"
+    },
+    {
+      "id": "T22 2.5→2.6",
+      "status": "aplicada"
+    },
+    {
+      "id": "T23 2.4→2.5",
+      "status": "aplicada"
+    },
+    {
+      "id": "R01 Resumo LGPD",
+      "status": "aplicada"
+    },
+    {
+      "id": "R02 Resumo estado",
+      "status": "aplicada"
+    },
+    {
+      "id": "R03 Abstract LGPD",
+      "status": "aplicada"
+    },
+    {
+      "id": "R04 Abstract estado",
+      "status": "aplicada"
+    },
+    {
+      "id": "M01 §2.2 Chart.js",
+      "status": "aplicada"
+    },
+    {
+      "id": "M02 §2.4 PostgreSQL",
+      "status": "aplicada"
+    },
+    {
+      "id": "M03 §2.5 front-end",
+      "status": "aplicada"
+    },
+    {
+      "id": "M04 §2.6 códigos",
+      "status": "aplicada"
+    },
+    {
+      "id": "M05 §2.7 testes",
+      "status": "aplicada"
+    },
+    {
+      "id": "M06 §2.7 CI",
+      "status": "aplicada"
+    },
+    {
+      "id": "M07 §2.8 backup",
+      "status": "aplicada"
+    },
+    {
+      "id": "M08 §2.9 tabelas",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q1 RF05 atores",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q1 RF06",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q1 RF07",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q1 RF08",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q1 RF09",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q1 RF11",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q1 RF14",
+      "status": "aplicada"
+    },
+    {
+      "id": "F05 descrição",
+      "status": "aplicada"
+    },
+    {
+      "id": "F05 atores",
+      "status": "aplicada"
+    },
+    {
+      "id": "F05 RN05",
+      "status": "aplicada"
+    },
+    {
+      "id": "F06 descrição",
+      "status": "aplicada"
+    },
+    {
+      "id": "F06 fluxo",
+      "status": "aplicada"
+    },
+    {
+      "id": "F06 RN04",
+      "status": "aplicada"
+    },
+    {
+      "id": "F07 RN01",
+      "status": "aplicada"
+    },
+    {
+      "id": "F07 RN03",
+      "status": "aplicada"
+    },
+    {
+      "id": "F07 RN04/RN05",
+      "status": "aplicada"
+    },
+    {
+      "id": "F08 descrição",
+      "status": "aplicada"
+    },
+    {
+      "id": "F08 RN06",
+      "status": "aplicada"
+    },
+    {
+      "id": "F08 CA01",
+      "status": "aplicada"
+    },
+    {
+      "id": "F09 pré-condição",
+      "status": "aplicada"
+    },
+    {
+      "id": "F09 fluxo 3",
+      "status": "aplicada"
+    },
+    {
+      "id": "F09 RN02",
+      "status": "aplicada"
+    },
+    {
+      "id": "F09 RN03",
+      "status": "aplicada"
+    },
+    {
+      "id": "F09 RN05",
+      "status": "aplicada"
+    },
+    {
+      "id": "F09 CA02",
+      "status": "aplicada"
+    },
+    {
+      "id": "F09 CA04",
+      "status": "aplicada"
+    },
+    {
+      "id": "F10 RN03",
+      "status": "aplicada"
+    },
+    {
+      "id": "F11 descrição",
+      "status": "aplicada"
+    },
+    {
+      "id": "F11 fluxo 1",
+      "status": "aplicada"
+    },
+    {
+      "id": "F11 RN02",
+      "status": "aplicada"
+    },
+    {
+      "id": "F11 CA03",
+      "status": "aplicada"
+    },
+    {
+      "id": "N04 limite",
+      "status": "aplicada"
+    },
+    {
+      "id": "N05 log",
+      "status": "aplicada"
+    },
+    {
+      "id": "N08 banco",
+      "status": "aplicada"
+    },
+    {
+      "id": "N08 FKs",
+      "status": "aplicada"
+    },
+    {
+      "id": "N12 OpenAPI",
+      "status": "aplicada"
+    },
+    {
+      "id": "C01 §3.3.1 Fig. 6",
+      "status": "aplicada"
+    },
+    {
+      "id": "C02 §3.3.1 Anotacao",
+      "status": "aplicada"
+    },
+    {
+      "id": "C03 §3.3.1 Anotacao-registro",
+      "status": "aplicada"
+    },
+    {
+      "id": "C04 §3.3.1 Preferencia",
+      "status": "aplicada"
+    },
+    {
+      "id": "C05 §3.3.2 EmailService",
+      "status": "aplicada"
+    },
+    {
+      "id": "C06 §3.3.2 PreferenciasView",
+      "status": "aplicada"
+    },
+    {
+      "id": "C07 §3.3.2 aluno",
+      "status": "aplicada"
+    },
+    {
+      "id": "C08 §3.3.2 profissional",
+      "status": "aplicada"
+    },
+    {
+      "id": "C09 §3.3.2 base",
+      "status": "aplicada"
+    },
+    {
+      "id": "B01 §3.4 situação",
+      "status": "aplicada"
+    },
+    {
+      "id": "B02 §3.4.4 título",
+      "status": "aplicada"
+    },
+    {
+      "id": "B03 §3.4.4 texto",
+      "status": "aplicada"
+    },
+    {
+      "id": "B04 §3.4.5 acesso",
+      "status": "aplicada"
+    },
+    {
+      "id": "D01 §4.1 dashboard",
+      "status": "aplicada"
+    },
+    {
+      "id": "D02 §4.3 primeira versão",
+      "status": "aplicada"
+    },
+    {
+      "id": "D03 §4.3 restrição",
+      "status": "aplicada"
+    },
+    {
+      "id": "D04 §4.3 estado",
+      "status": "aplicada"
+    },
+    {
+      "id": "D05 §4.5 anotação",
+      "status": "aplicada"
+    },
+    {
+      "id": "D06 §4.7 RF14",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 gestão obs",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 aluno obs",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 profissional obs",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 testes obs",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 preferências",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 preferências obs",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 distribuição",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 distribuição obs",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 edição",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 edição obs",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 anotações",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 anotações obs",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 PostgreSQL",
+      "status": "aplicada"
+    },
+    {
+      "id": "Q3 PostgreSQL obs",
+      "status": "aplicada"
+    },
+    {
+      "id": "E01 §5 estágio",
+      "status": "aplicada"
+    },
+    {
+      "id": "E02 §6 limitações",
+      "status": "aplicada"
+    },
+    {
+      "id": "X01 ref. Chart.js",
+      "status": "aplicada"
+    }
+  ],
+  "contagens": {
+    "original": {
+      "tabelas": 17,
+      "imagens_inline": 22,
+      "formas": 0,
+      "paragrafos": 1071
+    },
+    "marcada": {
+      "tabelas": 17,
+      "imagens_inline": 22,
+      "formas": 0,
+      "paragrafos": 1081
+    },
+    "atualizada": {
+      "tabelas": 17,
+      "imagens_inline": 22,
+      "formas": 0,
+      "paragrafos": 1122
+    }
+  },
+  "imagens_com_estilo_titulo_corrigidas": 3,
+  "revisoes": 185,
+  "sumarios_atualizados": 1,
+  "listas_figuras_campo": 0
+}

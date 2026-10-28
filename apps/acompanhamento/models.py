@@ -105,3 +105,23 @@ class Anotacao(models.Model):
 
     def __str__(self):
         return f'{self.autor} sobre {self.aluno} ({self.get_visibilidade_display()})'
+
+
+
+class LogAcesso(models.Model):
+    """Auditoria de acesso a dados de um aluno, p.ex. o profissional vendo o histórico dele (RF10, RNF05)."""
+
+    id = models.BigAutoField(primary_key=True, db_column='log_acesso_id')
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='logs_acesso')
+    aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name='logs_acesso')
+    acao = models.CharField('ação', max_length=100)
+    ocorrido_em = models.DateTimeField('ocorrido em', auto_now_add=True)
+
+    class Meta:
+        db_table = 'logs_acesso'
+        verbose_name = 'log de acesso'
+        verbose_name_plural = 'logs de acesso'
+        ordering = ['-ocorrido_em', '-pk']
+
+    def __str__(self):
+        return f'{self.user} - {self.acao} ({self.aluno})'
