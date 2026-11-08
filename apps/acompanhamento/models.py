@@ -15,6 +15,7 @@ class RegistroEvolucao(models.Model):
     aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name='registros_evolucao')
     atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, related_name='registros_evolucao')
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDENTE)
+    resposta = models.TextField('resposta do aluno', blank=True)
     observacoes = models.TextField('observações', blank=True)
     data_realizacao = models.DateTimeField('data de realização', default=timezone.now)
 
@@ -68,6 +69,8 @@ class AnotacaoQuerySet(models.QuerySet):
     def visiveis_para(self, usuario, aluno):
         """Anotações sobre o aluno que `usuario` (o aluno ou o profissional dele) pode ler: as suas, mais
         as compartilhadas pelo outro participante do vínculo atual. Quem não é participante não lê nada."""
+        if aluno.profissional_id is None:  # sem vínculo não há "outro participante"
+            return self.filter(aluno=aluno, autor=usuario)
         profissional_uid = aluno.profissional.user_id
         if usuario.pk == aluno.user_id:
             outro_id = profissional_uid

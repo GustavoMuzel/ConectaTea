@@ -1,22 +1,87 @@
 {% extends "base.html" %}
 {% block title %}Termos de Uso{% endblock %}
 {% block content %}
-<div class="cartao mx-auto" style="max-width: 44rem;">
-  <h1 class="h3 mb-4">Termos de Uso</h1>
+<article class="cartao documento mx-auto">
+  <h1 class="h2 mb-1">Termos de Uso</h1>
+  <p class="text-body-secondary">Versão 2.0 · Última atualização: 07/11/2026</p>
 
-  <h2 class="h5 mt-4">1. Sobre o ConectaTEA</h2>
-  <p>O ConectaTEA apoia o desenvolvimento de pessoas autistas. Profissionais de saúde e educação criam atividades para os alunos que atendem, e cada aluno acompanha as próprias atividades de um jeito simples e direto.</p>
+  <nav class="sumario my-4" aria-label="Sumário">
+    <p class="fw-bold mb-2">Nesta página</p>
+    <ol>
+      <li><a href="#t1">Aceite destes termos</a></li>
+      <li><a href="#t2">O que é o ConectaTEA</a></li>
+      <li><a href="#t3">Perfis e cadastro</a></li>
+      <li><a href="#t4">Alunos menores de idade</a></li>
+      <li><a href="#t5">Responsabilidades do profissional</a></li>
+      <li><a href="#t6">Anotações e registros</a></li>
+      <li><a href="#t7">O que não é permitido</a></li>
+      <li><a href="#t8">Desativação de contas</a></li>
+      <li><a href="#t9">Disponibilidade do serviço</a></li>
+      <li><a href="#t10">Privacidade</a></li>
+      <li><a href="#t11">Alterações destes termos</a></li>
+      <li><a href="#t12">Contato e legislação</a></li>
+    </ol>
+  </nav>
 
-  <h2 class="h5 mt-4">2. Cadastro de alunos menores de idade</h2>
-  <p>Nenhum aluno é cadastrado sem a autorização do responsável legal. Quando marca a caixa de consentimento no cadastro, o responsável confirma que leu estes Termos de Uso e a Política de Privacidade e que autoriza o uso dos dados do aluno da forma descrita nesses dois documentos.</p>
+  <h2 id="t1">1. Aceite destes termos</h2>
+  <p>Para criar uma conta, você precisa ler e aceitar estes Termos de Uso e a <a href="{% url 'privacidade' %}">Política de Privacidade</a>. O aceite é feito marcando a caixa de autorização no cadastro, e o sistema guarda a data e a hora em que isso aconteceu. Se você não concorda com estes termos, não use o ConectaTEA.</p>
 
-  <h2 class="h5 mt-4">3. Responsabilidades do profissional</h2>
-  <p>Antes de ficar ativa, toda conta de profissional precisa ser aprovada por um administrador. Cabe ao profissional responder pelas atividades que cadastra e acompanhar os alunos vinculados a ele.</p>
+  <h2 id="t2">2. O que é o ConectaTEA</h2>
+  <p>O ConectaTEA é uma plataforma de apoio ao desenvolvimento de habilidades sociais e de comunicação de adolescentes autistas. Profissionais de saúde e educação criam atividades para os alunos que acompanham, e os alunos realizam essas atividades em um ambiente simples, com poucos estímulos.</p>
+  <p><strong>O ConectaTEA não faz diagnóstico e não substitui consulta, terapia ou acompanhamento clínico.</strong> Ele é uma ferramenta de apoio ao trabalho do profissional.</p>
 
-  <h2 class="h5 mt-4">4. Uso da plataforma</h2>
-  <p>Use o ConectaTEA com respeito e boa-fé, e informe dados verdadeiros no cadastro. Não é permitido entrar com a conta de outra pessoa nem cadastrar dados falsos.</p>
+  <h2 id="t3">3. Perfis e cadastro</h2>
+  <ul>
+    <li><strong>Aluno:</strong> faz as atividades enviadas pelo profissional que o acompanha. Depois do cadastro, o profissional envia um pedido de vínculo e <strong>o aluno decide se aceita</strong>; até lá, não recebe atividades.</li>
+    <li><strong>Profissional:</strong> cria atividades, distribui aos alunos e acompanha a evolução de cada um.</li>
+    <li><strong>Administrador:</strong> aprova profissionais e cuida do funcionamento da plataforma.</li>
+  </ul>
+  <p>Ao se cadastrar, você se compromete a informar dados verdadeiros e a manter sua senha em segredo. A conta é pessoal: não compartilhe sua senha. Se esquecer a senha, use a opção “Esqueci minha senha” na tela de entrada: você recebe um código de 6 números no e-mail.</p>
 
-  <h2 class="h5 mt-4">5. Alterações destes termos</h2>
-  <p>Estes termos podem mudar. Quando isso acontecer, a nova versão vale a partir do dia em que for publicada nesta página.</p>
-</div>
+  <h2 id="t4">4. Alunos menores de idade</h2>
+  <p>Nenhum aluno menor de 18 anos pode ser cadastrado sem a autorização do responsável legal. No cadastro do aluno, o responsável confirma que leu estes Termos e a Política de Privacidade e autoriza o uso dos dados do aluno. Depois do cadastro, o responsável recebe um e-mail informando que a conta foi criada.</p>
+  <p>O responsável pode, a qualquer momento, pedir para ver, corrigir ou excluir os dados do aluno, ou retirar a autorização, pelo contato indicado no item 12.</p>
+
+  <h2 id="t5">5. Responsabilidades do profissional</h2>
+  <ul>
+    <li>A conta de profissional só é liberada <strong>depois da aprovação de um administrador</strong>. Até lá, é possível entrar no sistema, mas não cadastrar atividades nem ver alunos.</li>
+    <li>O profissional responde pelo conteúdo das atividades que cria e deve seguir as normas éticas do seu conselho de classe.</li>
+    <li>O profissional só deve enviar pedido de vínculo aos alunos que atende de verdade. O sistema registra cada vínculo aceito.</li>
+    <li><strong>Sala do aluno:</strong> quando o aluno aceita, é criada a sala dele, e o profissional vira o dono. Outros profissionais entram com a senha da sala, mas só depois que o dono aprova. Eles podem ver a evolução do aluno, corrigir as atividades feitas e propor atividades novas, que só chegam ao aluno depois da análise do dono. O dono responde por quem aprova na sala.</li>
+    <li>As informações dos alunos devem ser usadas apenas para o acompanhamento, com sigilo profissional, e nunca repassadas a terceiros.</li>
+  </ul>
+
+  <h2 id="t6">6. Anotações e registros</h2>
+  <p>Alunos e profissionais podem escrever anotações. Uma anotação <strong>privada</strong> só é lida por quem a escreveu; uma anotação <strong>compartilhada</strong> também é lida pela outra pessoa do vínculo (aluno ou profissional). Quem escreve é responsável pelo que escreve. O sistema registra quando um profissional consulta a evolução de um aluno.</p>
+
+  <h2 id="t6a">6.1 Atividades</h2>
+  <p>Cada atividade traz um material: um arquivo PDF ou um formulário do Google Forms. O aluno abre o material, escreve a sua resposta e conclui. O profissional não deve pedir, no PDF ou no formulário, dados pessoais que não sejam necessários para a atividade.</p>
+
+  <h2 id="t6b">6.2 Videochamada</h2>
+  <p>A videochamada da sala usa o serviço externo <strong>Jitsi Meet</strong> e abre em outra aba. Só entram pelo ConectaTEA o aluno, o dono da sala e os profissionais aprovados nela. O ConectaTEA <strong>não grava áudio nem vídeo</strong>: registra apenas quem entrou e quando. Não é permitido gravar a chamada sem a autorização do responsável pelo aluno.</p>
+
+  <h2 id="t7">7. O que não é permitido</h2>
+  <ul>
+    <li>Usar a conta de outra pessoa ou cadastrar dados falsos.</li>
+    <li>Publicar conteúdo ofensivo, discriminatório ou que exponha alguém.</li>
+    <li>Tentar acessar dados de alunos que não são seus, ou burlar a segurança do sistema.</li>
+    <li>Usar o ConectaTEA para fins comerciais ou de publicidade.</li>
+  </ul>
+
+  <h2 id="t8">8. Desativação de contas</h2>
+  <p>Contas que descumprirem estes termos podem ser desativadas por um administrador. Uma conta desativada não consegue mais entrar, mas o histórico de atividades é mantido para não prejudicar o acompanhamento do aluno, conforme a Política de Privacidade.</p>
+
+  <h2 id="t9">9. Disponibilidade do serviço</h2>
+  <p>Fazemos o possível para manter o ConectaTEA no ar, mas ele pode ficar fora do ar por manutenção ou por problemas técnicos. Recomendamos que informações importantes do acompanhamento também sejam guardadas nos registros próprios do profissional.</p>
+
+  <h2 id="t10">10. Privacidade</h2>
+  <p>A forma como os dados são coletados, usados e protegidos está descrita na <a href="{% url 'privacidade' %}">Política de Privacidade</a>, que faz parte destes termos.</p>
+
+  <h2 id="t11">11. Alterações destes termos</h2>
+  <p>Estes termos podem ser atualizados. A versão e a data da última atualização ficam no topo desta página. Se a mudança for importante, avisaremos os usuários e, quando necessário, pediremos um novo aceite.</p>
+
+  <h2 id="t12">12. Contato e legislação</h2>
+  <p>Dúvidas, pedidos ou reclamações: <a href="mailto:{{ contato_email }}">{{ contato_email }}</a>.</p>
+  <p>Estes termos seguem a legislação brasileira, em especial a Lei Geral de Proteção de Dados (Lei nº 13.709/2018), o Estatuto da Criança e do Adolescente (Lei nº 8.069/1990) e o Marco Civil da Internet (Lei nº 12.965/2014).</p>
+</article>
 {% endblock %}

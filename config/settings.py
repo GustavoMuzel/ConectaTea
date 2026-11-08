@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'apps.usuarios',
     'apps.atividades',
     'apps.acompanhamento',
+    'apps.salas',
 ]
 
 MIDDLEWARE = [
@@ -154,6 +155,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+# PDFs das atividades. Não ficam públicos: são entregues por uma view que confere quem pode ver.
+MEDIA_ROOT = BASE_DIR / 'media'
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
@@ -178,6 +182,10 @@ REST_FRAMEWORK = {
 BREVO_API_KEY = os.getenv('BREVO_API_KEY', '')
 BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', '')
 BREVO_SENDER_NAME = os.getenv('BREVO_SENDER_NAME', 'ConectaTEA')
+# Videochamada (RF13): serviço Jitsi Meet. Pode apontar para um servidor Jitsi próprio.
+JITSI_DOMINIO = os.getenv('JITSI_DOMINIO', 'meet.jit.si')
+# E-mail de contato e do encarregado de dados (LGPD), exibido nos Termos e na Política de Privacidade.
+CONTATO_EMAIL = os.getenv('CONTATO_EMAIL', 'contato@conectatea.com.br')
 
 LOGGING = {
     'version': 1,

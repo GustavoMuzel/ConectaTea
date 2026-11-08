@@ -1,15 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Meus alunos{% endblock %}
 {% block content %}
-<h1 class="h3 mb-4">Meus alunos</h1>
-<ul class="list-unstyled d-grid gap-3 mb-0">
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <h1 class="h3 mb-0">Meus alunos</h1>
+  <a class="btn btn-primary" href="{% url 'vincular_alunos' %}">Vincular alunos</a>
+</div>
+<ul class="list-unstyled d-grid gap-3 mb-4">
   {% for aluno in alunos %}
     <li class="cartao">
       <h2 class="h5 mb-2">{{ aluno.user.name }}</h2>
-      <a class="btn btn-outline-primary" href="{% url 'evolucao_aluno' aluno.pk %}">Ver evolução</a>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-primary" href="{% url 'evolucao_aluno' aluno.pk %}">Ver evolução</a>
+        {% if aluno.sala %}<a class="btn btn-outline-primary" href="{% url 'sala' aluno.sala.pk %}">Abrir sala</a>{% endif %}
+      </div>
     </li>
   {% empty %}
-    <li class="cartao">Você ainda não tem alunos vinculados.</li>
+    <li class="cartao">Você ainda não tem alunos vinculados. Use o botão <strong>Vincular alunos</strong> para enviar pedidos aos alunos que você atende.</li>
   {% endfor %}
 </ul>
+{% if da_equipe %}
+  <h2 class="h5 mb-3">Alunos que acompanho na equipe</h2>
+  <ul class="list-unstyled d-grid gap-3 mb-0">
+    {% for aluno in da_equipe %}
+      <li class="cartao">
+        <h3 class="h5 mb-1">{{ aluno.user.name }}</h3>
+        <p class="small text-body-secondary mb-2">Sala de {{ aluno.sala.dono.user.name }}</p>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-outline-primary" href="{% url 'evolucao_aluno' aluno.pk %}">Ver evolução</a>
+          <a class="btn btn-outline-primary" href="{% url 'sala' aluno.sala.pk %}">Abrir sala</a>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
 {% endblock %}

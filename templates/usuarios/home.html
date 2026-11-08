@@ -1,10 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Início{% endblock %}
 {% block content %}
-<div class="cartao">
+<div class="cartao mx-auto" style="max-width: 46rem;">
   <h1 class="h3">Olá, {{ user.name }}.</h1>
-  {% if user.profissional and not user.profissional.is_approved %}
-    <p class="mb-0">Sua conta de profissional está aguardando aprovação. Assim que um administrador aprovar, você já pode cadastrar atividades.</p>
+  {% if user.is_profissional_pendente %}
+    <div class="alert alert-warning mt-3" role="alert">
+      <span class="alert-titulo">Conta aguardando aprovação</span>
+      Sua conta de profissional está aguardando aprovação de um administrador. Assim que um administrador aprovar, você já pode cadastrar atividades e acompanhar seus alunos.
+    </div>
+    <h2 class="h5 mt-4">Enquanto isso</h2>
+    <ul class="mb-0">
+      <li>Você pode ajustar o tamanho da letra e o contraste em <a href="{% url 'preferencias' %}">Preferências</a>.</li>
+      <li>Leia os <a href="{% url 'termos' %}">Termos de Uso</a>, principalmente as responsabilidades do profissional.</li>
+      <li>Dúvidas sobre a aprovação: <a href="mailto:{{ contato_email }}">{{ contato_email }}</a>.</li>
+    </ul>
+  {% elif user.is_aluno_sem_vinculo %}
+    {% for pedido in pedidos_vinculo %}
+      <div class="border rounded p-3 mt-3">
+        <p class="mb-3"><strong>{{ pedido.profissional.user.name }}</strong> ({{ pedido.profissional.especialidade }}) quer acompanhar você no ConectaTEA.</p>
+        <p class="small text-body-secondary">Só aceite se esta pessoa atende você de verdade. Na dúvida, pergunte ao seu responsável.</p>
+        <div class="d-flex flex-wrap gap-2">
+          <form method="post" action="{% url 'responder_vinculo' pedido.pk 'aceitar' %}">
+            {% csrf_token %}<button type="submit" class="btn btn-primary btn-lg">Aceitar<span class="visually-hidden"> {{ pedido.profissional.user.name }}</span></button>
+          </form>
+          <form method="post" action="{% url 'responder_vinculo' pedido.pk 'recusar' %}">
+            {% csrf_token %}<button type="submit" class="btn btn-outline-secondary btn-lg">Recusar<span class="visually-hidden"> {{ pedido.profissional.user.name }}</span></button>
+          </form>
+        </div>
+      </div>
+    {% empty %}
+    <div class="alert alert-info mt-3" role="status">
+      <span class="alert-titulo">Falta só um passo</span>
+      Sua conta ainda não está ligada a um profissional. Quando o profissional que atende você enviar um pedido, ele vai aparecer aqui para você aceitar.
+    </div>
+    {% endfor %}
+    <p class="mt-3 mb-0">Enquanto isso, você pode ajustar o tamanho da letra e o contraste em <a href="{% url 'preferencias' %}">Preferências</a>.</p>
   {% else %}
     <p class="mb-0">Suas atividades vão aparecer aqui.</p>
   {% endif %}

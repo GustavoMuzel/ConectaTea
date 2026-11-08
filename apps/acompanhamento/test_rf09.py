@@ -95,8 +95,8 @@ def test_fazer_de_novo_abre_tentativa_em_andamento_e_concluir_fecha_ela(client, 
     assert RegistroEvolucao.objects.filter(status=EM_ANDAMENTO).count() == 1
 
     concluir = reverse('concluir_atividade', args=[atividade.pk])
-    client.post(concluir)
-    client.post(concluir)  # duplo clique não cria uma terceira conclusão
+    client.post(concluir, {'resposta': 'De novo'})
+    client.post(concluir, {'resposta': 'De novo'})  # duplo clique não cria uma terceira conclusão
     assert RegistroEvolucao.objects.filter(status=EM_ANDAMENTO).count() == 0
     assert RegistroEvolucao.objects.filter(status=CONCLUIDA).count() == 2
     assert Atribuicao.objects.get(aluno=aluno, atividade=atividade).status == Atribuicao.Status.CONCLUIDA

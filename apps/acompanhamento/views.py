@@ -4,9 +4,9 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
-from django.db.models import Count, Exists, Max, OuterRef
+from django.db.models import Count, Exists, Max, OuterRef, Q
 from django.db.models.functions import TruncWeek
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -17,14 +17,16 @@ from apps.atividades.models import Atividade
 from apps.usuarios.mixins import AlunoRequiredMixin, ProfissionalRequiredMixin
 from apps.usuarios.models import Aluno
 
-from .forms import AnotacaoForm, DistribuicaoAtividadeForm
+from .forms import AnotacaoForm, ConclusaoForm, DistribuicaoAtividadeForm
 from .models import Anotacao, Atribuicao, RegistroEvolucao
 
 
 def atividades_do_aluno(aluno):
     # Profissional revogado ou desativado deixa de entregar atividades aos alunos dele.
+    # Da sala, só chegam as atividades exclusivas deste aluno já publicadas (as dos membros passam pelo dono).
     return Atividade.objects.filter(
-        profissional_id=aluno.profissional_id,
+        Q(aluno__isnull=True) | Q(aluno=aluno),
+        profissional_id=aluno.profissional_id, publicacao=Atividade.Publicacao.PUBLICADA,
         profissional__is_approved=True, profissional__user__is_active=True,
     )
 
@@ -43,8 +45,17 @@ class AtividadesAlunoView(AlunoRequiredMixin, ListView):
         return atividades_do_aluno(aluno).exclude(pk__in=concluidas).order_by('created_at')
 
 
+def material_aberto(request, atividade):
+    """Atividade sem material (antiga) não exige abrir nada."""
+    from apps.atividades.views import SESSAO_MATERIAIS_ABERTOS
+
+    if not atividade.tipo_material:
+        return True
+    return atividade.pk in request.session.get(SESSAO_MATERIAIS_ABERTOS, [])
+
+
 class ConfirmarConclusaoView(AlunoRequiredMixin, DetailView):
-    """Tela intermediária: evita que um toque acidental na lista conclua a atividade direto."""
+    """Tela da atividade: material, campo de resposta e o botão de concluir (nada se conclui na lista)."""
 
     http_method_names = ['get']
     template_name = 'acompanhamento/confirmar_conclusao.html'
@@ -52,6 +63,11 @@ class ConfirmarConclusaoView(AlunoRequiredMixin, DetailView):
 
     def get_queryset(self):
         return atividades_do_aluno(self.request.user.aluno)
+
+    def get_context_data(self, **kwargs):
+        kwargs.setdefault('form', ConclusaoForm())
+        kwargs['aberto'] = material_aberto(self.request, self.object)
+        return super().get_context_data(**kwargs)
 
 
 class ConcluirAtividadeView(AlunoRequiredMixin, View):
@@ -61,6 +77,15 @@ class ConcluirAtividadeView(AlunoRequiredMixin, View):
         aluno = request.user.aluno
         # Só atividades do próprio profissional: id de outra atividade dá 404.
         atividade = get_object_or_404(atividades_do_aluno(aluno), pk=pk)
+        form = ConclusaoForm(request.POST)
+        aberto = material_aberto(request, atividade)
+        if not aberto:
+            form.is_valid()
+            form.add_error(None, 'Abra o material da atividade antes de concluir.')
+        if not aberto or not form.is_valid():
+            return render(request, 'acompanhamento/confirmar_conclusao.html',
+                          {'atividade': atividade, 'form': form, 'aberto': aberto})
+        resposta = form.cleaned_data['resposta']
         with transaction.atomic():
             # Trava o aluno: dois cliques seguidos não geram duas conclusões.
             Aluno.objects.select_for_update().get(pk=aluno.pk)
@@ -70,12 +95,13 @@ class ConcluirAtividadeView(AlunoRequiredMixin, View):
             if refazendo:  # tentativa aberta por "Fazer de novo": é ela que termina agora
                 refazendo.status = RegistroEvolucao.Status.CONCLUIDA
                 refazendo.data_realizacao = timezone.now()
-                refazendo.save(update_fields=['status', 'data_realizacao'])
+                refazendo.resposta = resposta
+                refazendo.save(update_fields=['status', 'data_realizacao', 'resposta'])
             elif registros.filter(status=RegistroEvolucao.Status.CONCLUIDA).exists():
                 criado = False
             else:
                 RegistroEvolucao.objects.create(
-                    aluno=aluno, atividade=atividade, status=RegistroEvolucao.Status.CONCLUIDA,
+                    aluno=aluno, atividade=atividade, status=RegistroEvolucao.Status.CONCLUIDA, resposta=resposta,
                 )
             # Distribuída: vira CONCLUIDA. Sem distribuição prévia, nasce já concluída (a unicidade evita duplicata).
             Atribuicao.objects.update_or_create(
@@ -135,7 +161,8 @@ class DistribuirAtividadeView(ProfissionalRequiredMixin, FormView):
         kwargs = super().get_form_kwargs()
         profissional = self.request.user.profissional
         # Só atividades ativas do próprio profissional: id de outra atividade ou arquivada dá 404.
-        atividade = get_object_or_404(profissional.atividades.filter(arquivada=False), pk=self.kwargs['pk'])
+        atividade = get_object_or_404(profissional.atividades.filter(arquivada=False, aluno__isnull=True),
+                                      pk=self.kwargs['pk'])
         return kwargs | {'profissional': profissional, 'initial': {'atividade': atividade}}
 
     def form_valid(self, form):
@@ -235,7 +262,8 @@ class AutorDeAnotacaoMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Só o autor mexe na anotação: a de outro, mesmo compartilhada comigo, dá 404."""
 
     def test_func(self):
-        return self.request.user.is_profissional or self.request.user.is_aluno
+        user = self.request.user
+        return user.is_profissional or (user.is_aluno and not user.is_aluno_sem_vinculo)
 
     def get_queryset(self):
         return Anotacao.objects.filter(autor=self.request.user)
@@ -244,7 +272,7 @@ class AutorDeAnotacaoMixin(LoginRequiredMixin, UserPassesTestMixin):
         aluno = self.object.aluno
         if self.request.user.pk == aluno.user_id:
             return reverse('anotacoes_aluno')
-        if aluno.profissional.user_id != self.request.user.pk:  # o aluno trocou de profissional
+        if aluno.profissional is None or aluno.profissional.user_id != self.request.user.pk:  # trocou de profissional
             return reverse('alunos_profissional')
         return reverse('anotacoes_profissional', args=[aluno.pk])
 

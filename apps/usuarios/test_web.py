@@ -19,7 +19,8 @@ def prof():
 
 
 def _dados(role, **extra):
-    return {'name': 'Novo', 'email': 'Novo@Ex.com', 'password1': SENHA, 'password2': SENHA, 'role': role, **extra}
+    return {'name': 'Novo', 'email': 'Novo@Ex.com', 'password1': SENHA, 'password2': SENHA, 'role': role,
+            'aceite_termos': 'on', **extra}
 
 
 @pytest.mark.django_db
@@ -58,21 +59,23 @@ def test_cadastro_profissional_cria_perfil_loga_e_envia_boas_vindas(client, djan
     enviar.assert_called_once_with(user)
     home = client.get(reverse('home'))
     assert home.status_code == 200 and 'aguardando aprovação' in home.content.decode()
-    assert client.get(reverse('painel')).status_code == 403
+    assert client.get(reverse('painel')).url == reverse('home')  # pendente volta ao início com aviso
 
 
 @pytest.mark.django_db
-def test_cadastro_aluno_cria_perfil_vinculado(client, prof):
+def test_cadastro_aluno_cria_perfil_sem_profissional(client, prof):
     antes = timezone.now()
     with patch('apps.usuarios.views.enviar_boas_vindas'), patch('apps.usuarios.views.enviar_notificacao_aluno_criado'):
+        # Mesmo que alguém envie "profissional" no POST, o cadastro ignora: quem vincula é o profissional.
         resp = client.post(reverse('cadastro'), _dados('aluno', profissional=prof.pk, **ALUNO))
 
     assert resp.status_code == 302
     aluno = Aluno.objects.get(user__email='novo@ex.com')
-    assert aluno.profissional == prof
+    assert aluno.profissional is None
     assert aluno.birth_date == datetime.date(2011, 5, 1)
     assert aluno.consentimento_data is not None and aluno.consentimento_data >= antes
-    assert client.get(reverse('home')).url == reverse('aluno_atividades')
+    home = client.get(reverse('home'))
+    assert home.status_code == 200 and 'ainda não está ligada a um profissional' in home.content.decode()
 
 
 @pytest.mark.django_db
@@ -106,7 +109,7 @@ def test_cadastro_mostra_links_para_termos_e_privacidade(client):
 @pytest.mark.parametrize('dados, campo', [
     (_dados('admin'), 'role'),
     (_dados('profissional'), 'especialidade'),
-    (_dados('aluno', **ALUNO), 'profissional'),
+    (_dados('aluno', **{**ALUNO, 'guardian_email': ''}), 'guardian_email'),
     (_dados('aluno', **{**ALUNO, 'birth_date': '2999-01-01'}), 'birth_date'),
     ({**_dados('profissional', especialidade='X'), 'password2': 'outra'}, 'password2'),
     (_dados('aluno', **{**ALUNO, 'consentimento_responsavel': ''}), 'consentimento_responsavel'),
@@ -215,19 +218,11 @@ def test_cadastro_profissional_nao_exige_consentimento(client):
 
 
 @pytest.mark.django_db
-def test_cadastro_lista_so_profissionais_aprovados(client, prof):
-    pendente = Profissional.objects.create(
-        user=User.objects.create_user('pend@ex.com', 'Pendente Silva', SENHA, role=User.Role.PROFISSIONAL),
-        especialidade='X',
-    )
+def test_cadastro_nao_lista_profissionais(client, prof):
+    # O visitante não vê mais nomes de profissionais: o vínculo é feito depois, pelo profissional.
     resp = client.get(reverse('cadastro'))
-    assert list(resp.context['form'].fields['profissional'].queryset) == [prof]
-    assert 'Pendente Silva' not in resp.content.decode()
-
-    with patch('apps.usuarios.views.enviar_boas_vindas'):
-        resp = client.post(reverse('cadastro'), _dados('aluno', profissional=pendente.pk, **ALUNO))
-    assert 'profissional' in resp.context['form'].errors
-    assert not Aluno.objects.exists()
+    assert 'profissional' not in resp.context['form'].fields
+    assert str(prof) not in resp.content.decode()  # 'Prof (Psicologia)', como aparecia no select
 
 
 @pytest.mark.django_db

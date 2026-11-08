@@ -6,6 +6,7 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from apps.usuarios.models import User
 
@@ -39,10 +40,16 @@ def enviar_email(para_email: str, assunto: str, html: str) -> bool:
 
 def enviar_boas_vindas(user: User) -> bool:
     # Sem user.name no e-mail: o nome é texto livre do cadastro e viraria conteúdo de phishing.
+    aviso = ''
+    if user.role == User.Role.PROFISSIONAL:
+        aviso = mark_safe(  # texto fixo, sem dado do usuário
+            '<p><strong>Atenção:</strong> contas de profissional precisam ser aprovadas por um administrador. '
+            'Você já pode entrar, mas só poderá cadastrar atividades e acompanhar alunos depois da aprovação.</p>',
+        )
     html = format_html(
-        '<p>Olá.</p><p>Sua conta no ConectaTEA foi criada com o perfil <strong>{}</strong>.</p>'
+        '<p>Olá.</p><p>Sua conta no ConectaTEA foi criada com o perfil <strong>{}</strong>.</p>{}'
         '<p>Para entrar, use este e-mail e a senha que você cadastrou.</p>',
-        user.get_role_display(),
+        user.get_role_display(), aviso,
     )
     return enviar_email(user.email, 'Bem-vindo ao ConectaTEA', html)
 
@@ -61,3 +68,19 @@ def enviar_notificacao_aluno_criado(user: User) -> bool:
         timezone.localtime(aluno.consentimento_data).strftime('%d/%m/%Y %H:%M'),
     )
     return enviar_email(aluno.guardian_email, 'Conta de aluno criada no ConectaTEA', html)
+
+
+def enviar_codigo_recuperacao(para_email: str, codigo: str) -> bool:
+    html = format_html(
+        '<p>Olá.</p><p>Recebemos um pedido para criar uma senha nova na sua conta do ConectaTEA.</p>'
+        '<p>Seu código de verificação é:</p>'
+        '<p style="font-size:28px;font-weight:bold;letter-spacing:6px">{}</p>'
+        '<p>O código vale por 10 minutos e só pode ser usado uma vez.</p>'
+        '<p>Se não foi você que pediu, ignore este e-mail: sua senha continua a mesma.</p>',
+        codigo,
+    )
+    enviado = enviar_email(para_email, 'Código para criar uma senha nova no ConectaTEA', html)
+    if not enviado and settings.DEBUG:
+        # Só em desenvolvimento e sem Brevo: mostra o código no terminal para dar para testar o fluxo.
+        logger.info('Código de recuperação de senha para %s (DEBUG): %s', para_email, codigo)
+    return enviado

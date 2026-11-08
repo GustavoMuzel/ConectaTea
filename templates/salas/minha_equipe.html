@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Minha equipe{% endblock %}
+{% block content %}
+<div class="cartao mx-auto" style="max-width: 46rem;">
+  <h1 class="h3 mb-3">Minha equipe</h1>
+  {% if sala %}
+    <p>Estas pessoas acompanham você no ConectaTEA:</p>
+    <ul class="list-unstyled d-grid gap-2 mb-4">
+      <li class="border rounded p-3"><span class="fw-semibold">{{ sala.dono.user.name }}</span> · {{ sala.dono.especialidade }}<br><span class="small text-body-secondary">Responsável pela sua sala</span></li>
+      {% for membro in membros %}
+        <li class="border rounded p-3"><span class="fw-semibold">{{ membro.profissional.user.name }}</span> · {{ membro.profissional.especialidade }}</li>
+      {% endfor %}
+    </ul>
+    <a class="btn btn-primary btn-lg w-100" href="{% url 'videochamada' sala.pk %}" target="_blank" rel="noopener">Entrar na videochamada<span class="visually-hidden"> (abre em outra aba)</span></a>
+    <p class="small text-body-secondary mt-3 mb-0">A chamada abre em outra aba. Entre só no horário combinado com o seu profissional.</p>
+  {% else %}
+    <p class="mb-0">Sua equipe vai aparecer aqui.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -9,9 +9,9 @@
   <section class="col-lg-5" aria-labelledby="titulo-nova">
     <div class="cartao">
       <h2 id="titulo-nova" class="h5 mb-3">Nova atividade</h2>
-      <form method="post" novalidate>
+      <form method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
-        {% for field in form %}{{ field.as_field_group }}{% endfor %}
+        {% include "partials/_atividade_campos.html" %}
         <button type="submit" class="btn btn-primary w-100">Cadastrar atividade</button>
       </form>
     </div>
@@ -26,6 +26,7 @@
           <p class="text-body-secondary small mb-2">{{ atividade.category }} · criada em {{ atividade.created_at|date:"d/m/Y" }}</p>
           {% if atividade.description %}<p class="mb-2">{{ atividade.description|linebreaksbr }}</p>{% endif %}
           <div class="d-flex flex-wrap gap-2">
+            {% if atividade.tipo_material %}<a href="{% url 'material_atividade' atividade.pk %}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">{% if atividade.tipo_material == 'pdf' %}Ver PDF{% else %}Ver formulário{% endif %}</a>{% endif %}
             {% if not atividade.arquivada %}
               <a href="{% url 'distribuir_atividade' atividade.pk %}" class="btn btn-sm btn-outline-primary">Distribuir</a>
             {% endif %}

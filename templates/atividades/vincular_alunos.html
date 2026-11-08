@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Vincular alunos{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+  <h1 class="h3 mb-0">Vincular alunos</h1>
+  <a class="btn btn-outline-primary" href="{% url 'alunos_profissional' %}">Voltar para Meus alunos</a>
+</div>
+<p class="text-body-secondary mb-4">Estes alunos criaram a conta e ainda não têm profissional. Envie o pedido só para os alunos que você atende de verdade: o vínculo vale depois que o aluno aceitar.</p>
+<ul class="list-unstyled d-grid gap-3 mb-0">
+  {% for aluno in alunos %}
+    <li class="cartao d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div>
+        <h2 class="h5 mb-1">{{ aluno.user.name }}</h2>
+        <p class="mb-0 text-body-secondary">{{ aluno.user.email_parcial }} · cadastro em {{ aluno.user.created_at|date:"d/m/Y" }}</p>
+      </div>
+      {% if aluno.pk in ja_pedidos %}
+        <span class="badge text-bg-warning fs-6">Pedido enviado · aguardando o aluno</span>
+      {% else %}
+        <form method="post" action="{% url 'pedir_vinculo' aluno.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary">Enviar pedido<span class="visually-hidden"> para {{ aluno.user.name }}</span></button>
+        </form>
+      {% endif %}
+    </li>
+  {% empty %}
+    <li class="cartao">Nenhum aluno aguardando vínculo no momento.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
