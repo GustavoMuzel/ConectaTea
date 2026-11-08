@@ -1,13 +1,35 @@
 /* Baixa carga sensorial: cores calmas, texto grande, nada se move, foco sempre visível. */
+
+/* Fonte criada para leitura fácil, servida pelo próprio projeto (sem serviço de terceiros). */
+@font-face {
+  font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("../fonts/atkinson-hyperlegible-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("../fonts/atkinson-hyperlegible-700.woff2") format("woff2");
+}
 :root {
+  --ct-primaria: #2f5d7c;
+  --ct-primaria-escura: #264c66;
+  --ct-primaria-suave: #e9f0f5;
+  --ct-fundo: #f5f6f3;
+  --ct-superficie: #fff;
+  --ct-borda: #dcdfd8;
+  --ct-texto: #1f2328;
+  --ct-texto-suave: #545a61;
+  --bs-font-sans-serif: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --bs-body-font-size: 1.125rem;
   --bs-body-line-height: 1.6;
-  --bs-body-bg: #f7f7f4;
-  --bs-body-color: #1f2328;
+  --bs-body-bg: var(--ct-fundo);
+  --bs-body-color: var(--ct-texto);
+  --bs-secondary-color: var(--ct-texto-suave);
+  --bs-border-color: var(--ct-borda);
   --bs-primary: #2f5d7c;
   --bs-primary-rgb: 47, 93, 124;
   --bs-link-color: #2f5d7c;
   --bs-link-color-rgb: 47, 93, 124;
+  --bs-border-radius: .5rem;
 }
 
 *, *::before, *::after {
@@ -16,12 +38,17 @@
   scroll-behavior: auto !important;
 }
 
+h1, h2, h3, h4, h5, .h1, .h2, .h3, .h4, .h5 { font-weight: 700; letter-spacing: -.01em; }
+
+.btn { font-weight: 600; }
 .btn-primary {
   --bs-btn-bg: #2f5d7c;
   --bs-btn-border-color: #2f5d7c;
   --bs-btn-hover-bg: #264c66;
   --bs-btn-hover-border-color: #264c66;
   --bs-btn-active-bg: #1f3f55;
+  --bs-btn-disabled-bg: #2f5d7c;
+  --bs-btn-disabled-border-color: #2f5d7c;
 }
 
 .btn-outline-primary {
@@ -33,7 +60,13 @@
 }
 
 .btn, .form-control, .form-select { min-height: 2.75rem; }
-.form-control, .form-select { background-color: #fff; }
+.form-control, .form-select { background-color: #fff; border-color: #b9bdb5; }
+.form-label { margin-bottom: .35rem; }
+.form-text { color: var(--ct-texto-suave); }
+.form-control:focus, .form-select:focus { background-color: #fff; border-color: var(--ct-primaria); }
+.form-check-input:checked { background-color: var(--ct-primaria); border-color: var(--ct-primaria); }
+.form-check-input { width: 1.25em; height: 1.25em; margin-top: .2em; border-color: #8a9096; }
+.form-check-label a { font-weight: 700; }
 
 :focus-visible {
   outline: 3px solid #1f2328 !important;
@@ -50,11 +83,64 @@
 }
 
 .cartao {
-  background: #fff;
-  border: 1px solid #d8d8d2;
-  border-radius: .5rem;
+  background: var(--ct-superficie);
+  border: 1px solid var(--ct-borda);
+  border-radius: .75rem;
   padding: 1.5rem;
+  box-shadow: 0 1px 2px rgba(31, 35, 40, .06);
 }
+@media (min-width: 768px) { .cartao { padding: 2rem; } }
+
+/* Cabeçalho e rodapé */
+.topo { background: var(--ct-superficie); border-bottom: 1px solid var(--ct-borda); }
+.marca { display: inline-flex; align-items: center; gap: .6rem; color: var(--ct-texto); font-size: 1.35rem;
+  font-weight: 700; text-decoration: none; }
+.marca:hover { color: var(--ct-primaria); }
+.marca-icone { width: 2.25rem; height: 2.25rem; flex: none; }
+.menu-link { color: var(--ct-texto); text-decoration: none; font-weight: 600; padding: .5rem .75rem;
+  border-radius: .5rem; border: 2px solid transparent; }
+.menu-link:hover { background: var(--ct-primaria-suave); color: var(--ct-primaria-escura); }
+.menu-link[aria-current="page"] { background: var(--ct-primaria-suave); color: var(--ct-primaria-escura);
+  border-color: var(--ct-primaria); }
+.usuario-logado { display: inline-flex; flex-direction: column; line-height: 1.2; text-align: right; }
+.usuario-logado small { color: var(--ct-texto-suave); }
+.rodape { background: var(--ct-superficie); border-top: 1px solid var(--ct-borda); color: var(--ct-texto-suave); }
+.rodape a { font-weight: 600; }
+
+/* Avisos */
+.alert { border-width: 1px 1px 1px 6px; border-radius: .5rem; font-weight: 500; }
+.alert-success { --bs-alert-bg: #eaf4ec; --bs-alert-border-color: #2e7d46; --bs-alert-color: #173d23; }
+.alert-info { --bs-alert-bg: var(--ct-primaria-suave); --bs-alert-border-color: var(--ct-primaria);
+  --bs-alert-color: #1b3a50; }
+.alert-warning { --bs-alert-bg: #fdf5e3; --bs-alert-border-color: #b7791f; --bs-alert-color: #4d3307; }
+.alert-danger { --bs-alert-bg: #fbeaea; --bs-alert-border-color: #a32828; --bs-alert-color: #5c1111; }
+.alert-titulo { display: block; font-weight: 700; margin-bottom: .15rem; }
+
+/* Telas de acesso (entrar, cadastro, senha) */
+.acesso { max-width: 64rem; margin: 0 auto; }
+.acesso-lateral { background: var(--ct-primaria); color: #fff; border-radius: .75rem; padding: 2rem; }
+.acesso-lateral h2 { color: #fff; }
+.acesso-lateral ul { padding-left: 1.2rem; margin: 0; }
+.acesso-lateral li + li { margin-top: .5rem; }
+.acesso-lateral a { color: #fff; }
+.caixa-aceite { background: var(--ct-primaria-suave); border: 1px solid #c7d6e1; border-radius: .5rem;
+  padding: 1rem 1rem .25rem; }
+
+/* Página inicial pública */
+.destaque { background: var(--ct-superficie); border: 1px solid var(--ct-borda); border-radius: .75rem;
+  padding: 2.5rem 1.5rem; }
+@media (min-width: 768px) { .destaque { padding: 3.5rem; } }
+.recurso { height: 100%; }
+.recurso-icone { width: 2.75rem; height: 2.75rem; border-radius: .5rem; background: var(--ct-primaria-suave);
+  color: var(--ct-primaria); display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: .75rem; }
+
+/* Documentos legais */
+.documento { max-width: 50rem; }
+.documento h2 { font-size: 1.2rem; margin-top: 2rem; }
+.documento .sumario { background: var(--ct-fundo); border-radius: .5rem; padding: 1rem 1.25rem; }
+.documento .sumario ol { margin: 0; padding-left: 1.25rem; columns: 2; }
+@media (max-width: 575px) { .documento .sumario ol { columns: 1; } }
 
 /* Preferências de acessibilidade (RF14): classes no <body>, ligadas pelo usuário em /preferencias/. */
 html:has(body.font-lg) { font-size: 120%; }
@@ -70,7 +156,20 @@ html:has(body.font-xlg) { font-size: 140%; }
   --bs-link-hover-color: #fff;
   --bs-link-hover-color-rgb: 255, 255, 255;
 }
+.high-contrast {
+  --ct-fundo: #000; --ct-superficie: #000; --ct-borda: #fff; --ct-texto: #fff; --ct-texto-suave: #fff;
+  --ct-primaria-suave: #000;
+}
 .high-contrast .bg-white { background: #000 !important; }
+.high-contrast .topo, .high-contrast .rodape { border-color: #fff; }
+.high-contrast .marca, .high-contrast .menu-link { color: #fff; }
+.high-contrast .menu-link:hover, .high-contrast .menu-link[aria-current="page"] {
+  background: #000; color: #ff0; border-color: #ff0; }
+.high-contrast .acesso-lateral { background: #000; border: 2px solid #fff; }
+.high-contrast .acesso-lateral a { color: #ff0; }
+.high-contrast .caixa-aceite, .high-contrast .destaque, .high-contrast .documento .sumario {
+  background: #000; border: 2px solid #fff; }
+.high-contrast .recurso-icone { background: #000; color: #ff0; border: 2px solid #ff0; }
 .high-contrast .cartao { background: #000; border: 2px solid #fff; }
 .high-contrast .btn-primary {
   --bs-btn-color: #000; --bs-btn-bg: #ff0; --bs-btn-border-color: #ff0;
@@ -86,7 +185,8 @@ html:has(body.font-xlg) { font-size: 140%; }
   --bs-btn-color: #000; --bs-btn-bg: #ff6b6b; --bs-btn-border-color: #fff;
   --bs-btn-hover-color: #000; --bs-btn-hover-bg: #fff;
 }
-.high-contrast .form-control, .high-contrast .form-select {
+.high-contrast .form-control, .high-contrast .form-select,
+.high-contrast .form-control:focus, .high-contrast .form-select:focus {
   background-color: #000; color: #fff; border: 2px solid #ff0;
 }
 .high-contrast .form-select {
@@ -95,7 +195,8 @@ html:has(body.font-xlg) { font-size: 140%; }
 .high-contrast .form-check-input { background-color: #000; border: 2px solid #ff0; }
 .high-contrast .form-check-input:checked { background-color: #ff0; border-color: #ff0; }
 .high-contrast .badge.text-bg-secondary { background-color: #fff !important; color: #000 !important; }
-.high-contrast .alert { background: #000; color: #fff; border: 2px solid #ff0; }
+.high-contrast .alert { --bs-alert-bg: #000; --bs-alert-color: #fff; --bs-alert-border-color: #ff0;
+  border-width: 2px 2px 2px 6px; }
 .high-contrast .table { --bs-table-color: #fff; --bs-table-bg: #000; --bs-table-border-color: #fff; }
 .high-contrast .errorlist { color: #ff9a9a; }
 .high-contrast :focus-visible { outline-color: #ff0 !important; }

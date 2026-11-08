@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Salas{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Salas</h1>
+<p class="text-body-secondary mb-4">Cada aluno tem uma sala com a equipe de profissionais que o acompanha.</p>
+<div class="row g-4">
+  <section class="col-lg-7" aria-labelledby="t-minhas">
+    <h2 id="t-minhas" class="h5 mb-3">Salas que eu criei</h2>
+    <ul class="list-unstyled d-grid gap-3 mb-4">
+      {% for sala in minhas %}
+        <li class="cartao d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <h3 class="h6 mb-1">Sala de {{ sala.aluno.user.name }}</h3>
+            <p class="small text-body-secondary mb-0">Você é o dono · senha <strong>{{ sala.senha }}</strong></p>
+          </div>
+          <a class="btn btn-outline-primary" href="{% url 'sala' sala.pk %}">Abrir sala</a>
+        </li>
+      {% empty %}
+        <li class="cartao">Nenhuma sala ainda. A sala nasce quando um aluno aceita o seu pedido de vínculo.</li>
+      {% endfor %}
+    </ul>
+
+    <h2 class="h5 mb-3">Salas de outros profissionais</h2>
+    <ul class="list-unstyled d-grid gap-3 mb-0">
+      {% for membro in participacoes %}
+        <li class="cartao d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <h3 class="h6 mb-1">Sala de {{ membro.sala.aluno.user.name }}</h3>
+            <p class="small text-body-secondary mb-0">Dono: {{ membro.sala.dono.user.name }} · {{ membro.get_status_display }}</p>
+          </div>
+          {% if membro.status == 'aprovado' %}<a class="btn btn-outline-primary" href="{% url 'sala' membro.sala.pk %}">Abrir sala</a>{% endif %}
+        </li>
+      {% empty %}
+        <li class="cartao">Você ainda não participa da sala de outro profissional.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="col-lg-5" aria-labelledby="t-entrar">
+    <div class="cartao">
+      <h2 id="t-entrar" class="h5 mb-3">Entrar em uma sala</h2>
+      <form method="post" action="{% url 'entrar_sala' %}" novalidate>
+        {% csrf_token %}
+        {% for field in form %}{{ field.as_field_group }}{% endfor %}
+        <button type="submit" class="btn btn-primary w-100">Pedir para entrar</button>
+      </form>
+      <p class="small text-body-secondary mt-3 mb-0">O dono da sala recebe o seu pedido e decide se aprova.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}

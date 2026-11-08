@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Sala de {{ sala.aluno.user.name }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-1">
+  <h1 class="h3 mb-0">Sala de {{ sala.aluno.user.name }}</h1>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-primary" href="{% url 'videochamada' sala.pk %}" target="_blank" rel="noopener">Abrir videochamada<span class="visually-hidden"> (abre em outra aba)</span></a>
+    <a class="btn btn-outline-primary" href="{% url 'evolucao_aluno' sala.aluno.pk %}">Ver evolução</a>
+  </div>
+</div>
+<p class="text-body-secondary mb-4">Dono da sala: {{ sala.dono.user.name }}{% if eh_dono %} (você){% endif %}</p>
+
+<div class="row g-4">
+  <div class="col-lg-7 d-grid gap-4 align-content-start">
+    {% if eh_dono %}
+      <section class="cartao" aria-labelledby="t-pendentes">
+        <h2 id="t-pendentes" class="h5 mb-3">Atividades para analisar ({{ em_analise|length }})</h2>
+        {% for atividade in em_analise %}
+          <div class="border rounded p-3 mb-3">
+            <h3 class="h6 mb-1">{{ atividade.title }}</h3>
+            <p class="small text-body-secondary mb-2">{{ atividade.category }} · enviada por {{ atividade.autor.user.name }} em {{ atividade.created_at|date:"d/m/Y" }}</p>
+            {% if atividade.description %}<p class="mb-3">{{ atividade.description|linebreaksbr }}</p>{% endif %}
+            <div class="d-flex flex-wrap gap-2 align-items-start">
+              {% if atividade.tipo_material %}<a href="{% url 'material_atividade' atividade.pk %}" target="_blank" rel="noopener" class="btn btn-outline-primary">{% if atividade.tipo_material == 'pdf' %}Ver PDF{% else %}Ver formulário{% endif %}</a>{% endif %}
+              <form method="post" action="{% url 'analisar_atividade' sala.pk atividade.pk 'aprovar' %}">
+                {% csrf_token %}<button type="submit" class="btn btn-primary">Aprovar e publicar</button>
+              </form>
+              <a class="btn btn-outline-secondary" href="{% url 'editar_atividade' atividade.pk %}">Corrigir antes</a>
+            </div>
+            <form method="post" action="{% url 'analisar_atividade' sala.pk atividade.pk 'recusar' %}" class="mt-3">
+              {% csrf_token %}
+              {{ form_recusa.motivo.as_field_group }}
+              <button type="submit" class="btn btn-outline-danger">Recusar</button>
+            </form>
+          </div>
+        {% empty %}
+          <p class="mb-0">Nenhuma atividade esperando a sua análise.</p>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <section class="cartao" aria-labelledby="t-propor">
+      <h2 id="t-propor" class="h5 mb-1">{% if eh_dono %}Postar atividade para {{ sala.aluno.user.name }}{% else %}Propor atividade{% endif %}</h2>
+      <p class="small text-body-secondary mb-3">{% if eh_dono %}Como dono, a atividade é publicada na hora, só para este aluno.{% else %}A atividade só aparece para o aluno depois que {{ sala.dono.user.name }} aprovar.{% endif %}</p>
+      <form method="post" action="{% url 'propor_atividade' sala.pk %}" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% with form=form_proposta %}{% include "partials/_atividade_campos.html" %}{% endwith %}
+        <button type="submit" class="btn btn-primary">{% if eh_dono %}Publicar{% else %}Enviar para análise{% endif %}</button>
+      </form>
+    </section>
+
+    <section class="cartao" aria-labelledby="t-hist">
+      <h2 id="t-hist" class="h5 mb-3">{% if eh_dono %}Atividades desta sala{% else %}Minhas propostas{% endif %}</h2>
+      <ul class="list-unstyled mb-0 d-grid gap-2">
+        {% for atividade in historico %}
+          <li class="border rounded p-3">
+            <span class="fw-semibold">{{ atividade.title }}</span>
+            <span class="badge {% if atividade.publicacao == 'publicada' %}text-bg-success{% elif atividade.publicacao == 'recusada' %}text-bg-danger{% else %}text-bg-warning{% endif %} ms-1">{{ atividade.get_publicacao_display }}</span>
+            <div class="small text-body-secondary">por {{ atividade.autor.user.name|default:sala.dono.user.name }} · {{ atividade.created_at|date:"d/m/Y" }}</div>
+            {% if atividade.publicacao == 'recusada' and atividade.motivo_recusa %}<div class="small mt-1">Motivo: {{ atividade.motivo_recusa }}</div>{% endif %}
+          </li>
+        {% empty %}
+          <li>Nenhuma atividade ainda.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <div class="col-lg-5 d-grid gap-4 align-content-start">
+    {% if eh_dono %}
+      <section class="cartao" aria-labelledby="t-senha">
+        <h2 id="t-senha" class="h5 mb-2">Senha da sala</h2>
+        <p class="display-6 fw-bold mb-2" style="letter-spacing:.2em">{{ sala.senha }}</p>
+        <p class="small text-body-secondary">Passe esta senha ao profissional que vai entrar. Você ainda aprova cada pedido.</p>
+        <form method="post" action="{% url 'trocar_senha_sala' sala.pk %}"
+              onsubmit="return confirm('Trocar a senha? A antiga deixa de funcionar.')">
+          {% csrf_token %}<button type="submit" class="btn btn-outline-secondary">Trocar senha</button>
+        </form>
+      </section>
+
+      <section class="cartao" aria-labelledby="t-pedidos">
+        <h2 id="t-pedidos" class="h5 mb-3">Pedidos para entrar ({{ pendentes|length }})</h2>
+        {% for membro in pendentes %}
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <div><span class="fw-semibold">{{ membro.profissional.user.name }}</span><br><span class="small text-body-secondary">{{ membro.profissional.especialidade }}</span></div>
+            <div class="d-flex gap-2">
+              <form method="post" action="{% url 'decidir_membro' sala.pk membro.pk 'aprovar' %}">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Aprovar</button></form>
+              <form method="post" action="{% url 'decidir_membro' sala.pk membro.pk 'recusar' %}">{% csrf_token %}<button class="btn btn-outline-secondary btn-sm" type="submit">Recusar</button></form>
+            </div>
+          </div>
+        {% empty %}
+          <p class="mb-0">Nenhum pedido no momento.</p>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <section class="cartao" aria-labelledby="t-equipe">
+      <h2 id="t-equipe" class="h5 mb-3">Equipe da sala</h2>
+      <ul class="list-unstyled mb-0 d-grid gap-2">
+        <li><span class="fw-semibold">{{ sala.dono.user.name }}</span> · {{ sala.dono.especialidade }} <span class="badge text-bg-secondary">Dono</span></li>
+        {% for membro in membros %}
+          <li class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span><span class="fw-semibold">{{ membro.profissional.user.name }}</span> · {{ membro.profissional.especialidade }}</span>
+            {% if eh_dono %}
+              <form method="post" action="{% url 'decidir_membro' sala.pk membro.pk 'remover' %}"
+                    onsubmit="return confirm('Remover {{ membro.profissional.user.name|escapejs }} da sala?')">
+                {% csrf_token %}<button class="btn btn-outline-secondary btn-sm" type="submit">Remover<span class="visually-hidden"> {{ membro.profissional.user.name }}</span></button>
+              </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

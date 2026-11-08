@@ -66,8 +66,8 @@ def test_concluir_atualiza_a_atribuicao_para_concluida(client, cenario):
     atribuicao = Atribuicao.objects.create(atividade=atividade, aluno=aluno, profissional=cenario['prof'])
     client.force_login(aluno.user)
     url = reverse('concluir_atividade', args=[atividade.pk])
-    client.post(url)
-    client.post(url)  # segundo envio não duplica nada
+    client.post(url, {'resposta': 'x'})
+    client.post(url, {'resposta': 'x'})  # segundo envio não duplica nada
     atribuicao.refresh_from_db()
     assert atribuicao.status == Atribuicao.Status.CONCLUIDA
     assert Atribuicao.objects.count() == 1 and RegistroEvolucao.objects.count() == 1
@@ -76,7 +76,7 @@ def test_concluir_atualiza_a_atribuicao_para_concluida(client, cenario):
 @pytest.mark.django_db
 def test_concluir_sem_distribuicao_previa_cria_atribuicao_concluida(client, cenario):
     client.force_login(cenario['aluno'].user)
-    client.post(reverse('concluir_atividade', args=[cenario['atividade'].pk]))
+    client.post(reverse('concluir_atividade', args=[cenario['atividade'].pk]), {'resposta': 'x'})
     atribuicao = Atribuicao.objects.get()
     assert (atribuicao.aluno, atribuicao.profissional) == (cenario['aluno'], cenario['prof'])
     assert atribuicao.status == Atribuicao.Status.CONCLUIDA

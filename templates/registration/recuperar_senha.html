@@ -1,0 +1,16 @@
+{% extends "registration/acesso_base.html" %}
+{% block title %}Esqueci minha senha{% endblock %}
+{% block formulario %}
+<h1 class="h3 mb-1">Esqueci minha senha</h1>
+<p class="text-body-secondary mb-4">Digite o e-mail da sua conta. Vamos enviar um <strong>código de 6 números</strong> para você criar uma senha nova.</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% for field in form %}{{ field.as_field_group }}{% endfor %}
+  <button type="submit" class="btn btn-primary btn-lg w-100">Enviar código</button>
+</form>
+<div class="alert alert-info mt-4 mb-0" role="note">
+  <span class="alert-titulo">Aluno sem acesso ao e-mail?</span>
+  Peça ajuda ao seu responsável ou ao profissional que acompanha você.
+</div>
+<p class="mt-4 mb-0 text-center"><a href="{% url 'login' %}">Voltar para Entrar</a></p>
+{% endblock %}

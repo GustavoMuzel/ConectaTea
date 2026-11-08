@@ -1,0 +1,23 @@
+{% extends "registration/acesso_base.html" %}
+{% block title %}Criar senha nova{% endblock %}
+{% block formulario %}
+<h1 class="h3 mb-1">Criar senha nova</h1>
+<p class="text-body-secondary mb-4">Digite o código que chegou em <strong>{{ email }}</strong> e escolha a senha nova.</p>
+<ul class="mb-4">
+  <li>O código vale por 10 minutos e só pode ser usado uma vez.</li>
+  <li>Depois de 5 tentativas erradas, o código deixa de valer.</li>
+  <li>Não chegou? Confira a caixa de spam ou lixo eletrônico.</li>
+</ul>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.errors %}
+    <div class="alert alert-danger" role="alert">
+      <span class="alert-titulo">Não foi possível trocar a senha</span>
+      Confira os campos marcados abaixo.
+    </div>
+  {% endif %}
+  {% for field in form %}{{ field.as_field_group }}{% endfor %}
+  <button type="submit" class="btn btn-primary btn-lg w-100">Salvar senha nova</button>
+</form>
+<p class="mt-4 mb-0 text-center"><a href="{% url 'recuperar_senha' %}">Pedir um código novo</a></p>
+{% endblock %}

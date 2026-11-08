@@ -24,7 +24,7 @@ def _aluno(email, prof):
 
 
 def _concluir(client, atividade):
-    return client.post(reverse('concluir_atividade', args=[atividade.pk]), follow=True)
+    return client.post(reverse('concluir_atividade', args=[atividade.pk]), {'resposta': 'Eu fiz.'}, follow=True)
 
 
 @pytest.fixture
@@ -72,7 +72,7 @@ def test_lista_so_atividades_do_proprio_profissional_com_botao(client, cenario):
     assert resp.status_code == 200
     assert list(resp.context['atividades']) == [cenario['minha1'], cenario['minha2']]
     assert 'Alheia' not in html
-    assert html.count('Concluir atividade') == 2
+    assert html.count('Fazer atividade') == 2
     assert 'Pedir &lt;b&gt;ajuda&lt;/b&gt;' in html  # título escapado
     # Botão só leva à tela de confirmação; o POST que conclui não sai direto da listagem.
     assert reverse('confirmar_conclusao', args=[cenario['minha1'].pk]) in html
@@ -87,7 +87,7 @@ def test_tela_de_confirmacao_mostra_o_nome_e_nao_conclui_sozinha(client, cenario
     assert resp.context['atividade'] == cenario['minha1']
     html = resp.content.decode()
     assert 'Cumprimentar' in html
-    assert 'Sim, terminei' in html and 'Não, voltar' in html
+    assert 'Sua resposta' in html and 'Concluir atividade' in html and 'Voltar' in html
     assert not RegistroEvolucao.objects.exists()
 
 

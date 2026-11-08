@@ -3,17 +3,24 @@
 {% block content %}
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
   <h1 class="h3 mb-0">Evolução de {{ aluno.user.name }}</h1>
-  <a href="{% url 'anotacoes_profissional' aluno.pk %}" class="btn btn-outline-primary">Anotações</a>
+  <div class="d-flex flex-wrap gap-2">
+    {% if aluno.sala %}<a href="{% url 'sala' aluno.sala.pk %}" class="btn btn-outline-primary">Sala</a>{% endif %}
+    {% if eh_dono %}<a href="{% url 'anotacoes_profissional' aluno.pk %}" class="btn btn-outline-primary">Anotações</a>{% endif %}
+  </div>
 </div>
 <ul class="list-unstyled d-grid gap-3 mb-0">
   {% for registro, form in registros %}
     <li class="cartao">
       <h2 class="h6 mb-1">{{ registro.atividade.title }} <span class="text-body-secondary fw-normal">· tentativa {{ registro.tentativa }}</span></h2>
       <p class="text-body-secondary small mb-3">Concluída em {{ registro.data_realizacao|date:"d/m/Y H:i" }}</p>
+      <div class="border rounded p-3 mb-3">
+        <p class="fw-semibold mb-1">Resposta do aluno</p>
+        <p class="mb-0">{{ registro.resposta|default:"(sem resposta escrita)"|linebreaksbr }}</p>
+      </div>
       <form method="post" action="{% url 'salvar_observacao' aluno.pk registro.pk %}">
         {% csrf_token %}
         {{ form.observacoes.as_field_group }}
-        <button type="submit" class="btn btn-primary">Salvar anotação</button>
+        <button type="submit" class="btn btn-primary">Salvar correção</button>
       </form>
     </li>
   {% empty %}

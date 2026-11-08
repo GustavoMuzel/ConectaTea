@@ -30,6 +30,7 @@ def test_profissional_edita_a_propria_atividade(client, cenario):
     url = reverse('editar_atividade', args=[cenario['minha'].pk])
     assert client.get(url).status_code == 200
     resp = client.post(url, {'title': 'Cumprimentar bem', 'description': 'Olhar nos olhos', 'category': 'social',
+                             'tipo_material': 'formulario', 'link_formulario': 'https://forms.gle/abc',
                              'arquivada': 'on'})  # o form não aceita arquivar por edição
     assert resp.status_code == 302 and resp.url == reverse('painel')
     cenario['minha'].refresh_from_db()

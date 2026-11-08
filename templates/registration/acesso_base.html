@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% comment %}Layout das telas de acesso: formulário à esquerda, explicação curta à direita (some no celular).{% endcomment %}
+{% block content %}
+<div class="acesso row g-4 align-items-stretch">
+  <div class="{% block coluna_form %}col-lg-7{% endblock %}">
+    <div class="cartao h-100">
+      {% block formulario %}{% endblock %}
+    </div>
+  </div>
+  <aside class="col-lg-5 d-none d-lg-block" aria-label="Sobre o ConectaTEA">
+    <div class="acesso-lateral h-100">
+      {% block lateral %}
+      <h2 class="h4 mb-3">Um ambiente tranquilo para aprender</h2>
+      <ul>
+        <li>Atividades preparadas pelo profissional que acompanha o aluno.</li>
+        <li>Telas simples, sem animações e com texto grande.</li>
+        <li>Você pode aumentar a letra e ligar o alto contraste em Preferências.</li>
+        <li>Dados de menores tratados conforme a LGPD.</li>
+      </ul>
+      {% endblock %}
+    </div>
+  </aside>
+</div>
+{% endblock %}

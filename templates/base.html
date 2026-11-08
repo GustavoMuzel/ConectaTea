@@ -3,29 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ConectaTEA: atividades e acompanhamento para adolescentes autistas, em um ambiente com poucos estímulos.">
   <title>{% block title %}{% endblock %} | ConectaTEA</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
   <link rel="stylesheet" href="{% static 'css/conectatea.css' %}">
 </head>
+{% with atual=request.resolver_match.url_name %}
 <body class="d-flex flex-column min-vh-100{% if prefs.tamanho_fonte == 'grande' %} font-lg{% elif prefs.tamanho_fonte == 'muito_grande' %} font-xlg{% endif %}{% if prefs.alto_contraste %} high-contrast{% endif %}{% if prefs.reduzir_estimulos %} reduce-stimuli{% endif %}">
   <a class="visually-hidden-focusable" href="#conteudo">Ir para o conteúdo</a>
 
-  <header class="border-bottom bg-white">
-    <nav class="container d-flex flex-wrap align-items-center gap-3 py-3" aria-label="Menu principal">
-      <a class="fs-4 fw-bold text-decoration-none me-auto" href="{% url 'home' %}">ConectaTEA</a>
+  <header class="topo">
+    <nav class="container d-flex flex-wrap align-items-center gap-2 py-3" aria-label="Menu principal">
+      <a class="marca me-auto" href="{% url 'home' %}">
+        <svg class="marca-icone decorativo" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+          <rect width="36" height="36" rx="9" fill="#2f5d7c"/>
+          <circle cx="13" cy="18" r="6" fill="none" stroke="#fff" stroke-width="3"/>
+          <circle cx="23" cy="18" r="6" fill="none" stroke="#cfe0ec" stroke-width="3"/>
+        </svg>
+        <span>ConectaTEA</span>
+      </a>
       {% if user.is_authenticated %}
-        <span>{{ user.name }}</span>
         {% if user.is_profissional %}
-          <a class="btn btn-outline-primary" href="{% url 'painel' %}">Minhas atividades</a>
-          <a class="btn btn-outline-primary" href="{% url 'alunos_profissional' %}">Meus alunos</a>
+          <a class="menu-link" href="{% url 'painel' %}"{% if atual == 'painel' or atual == 'editar_atividade' or atual == 'distribuir_atividade' %} aria-current="page"{% endif %}>Minhas atividades</a>
+          <a class="menu-link" href="{% url 'alunos_profissional' %}"{% if atual == 'alunos_profissional' or atual == 'vincular_alunos' or atual == 'evolucao_aluno' or atual == 'anotacoes_profissional' %} aria-current="page"{% endif %}>Meus alunos</a>
+          <a class="menu-link" href="{% url 'salas' %}"{% if atual == 'salas' or atual == 'sala' or atual == 'entrar_sala' or atual == 'propor_atividade' %} aria-current="page"{% endif %}>Salas</a>
+          <a class="menu-link" href="{% url 'dashboard_profissional' %}"{% if atual == 'dashboard_profissional' %} aria-current="page"{% endif %}>Relatórios</a>
         {% endif %}
-        {% if user.is_aluno %}
-          <a class="btn btn-outline-primary" href="{% url 'aluno_atividades' %}">Minhas atividades</a>
-          <a class="btn btn-outline-primary" href="{% url 'historico_aluno' %}">Meu histórico</a>
+        {% if user.is_aluno and not user.is_aluno_sem_vinculo %}
+          <a class="menu-link" href="{% url 'aluno_atividades' %}"{% if atual == 'aluno_atividades' or atual == 'confirmar_conclusao' %} aria-current="page"{% endif %}>Minhas atividades</a>
+          <a class="menu-link" href="{% url 'historico_aluno' %}"{% if atual == 'historico_aluno' %} aria-current="page"{% endif %}>Meu histórico</a>
+          <a class="menu-link" href="{% url 'anotacoes_aluno' %}"{% if atual == 'anotacoes_aluno' %} aria-current="page"{% endif %}>Anotações</a>
+          <a class="menu-link" href="{% url 'minha_equipe' %}"{% if atual == 'minha_equipe' %} aria-current="page"{% endif %}>Minha equipe</a>
         {% endif %}
-        {% if user.is_superuser or user.is_staff %}<a class="btn btn-outline-primary" href="{% url 'painel_gestao' %}">Painel de Gestão</a>{% endif %}
-        <a class="btn btn-outline-primary" href="{% url 'preferencias' %}">Preferências</a>
+        {% if user.is_superuser or user.is_staff and perms.usuarios.change_profissional %}
+          <a class="menu-link" href="{% url 'painel_gestao' %}"{% if atual == 'painel_gestao' %} aria-current="page"{% endif %}>Painel de Gestão</a>
+        {% endif %}
+        <a class="menu-link" href="{% url 'preferencias' %}"{% if atual == 'preferencias' %} aria-current="page"{% endif %}>Preferências</a>
+        <span class="usuario-logado ms-lg-2">
+          <span class="fw-semibold">{{ user.name }}</span>
+          <small>{% if user.is_profissional_pendente %}Profissional (aguardando aprovação){% elif user.is_aluno_sem_vinculo %}Aluno (aguardando vínculo){% else %}{{ user.get_role_display|default:"Usuário" }}{% endif %}</small>
+        </span>
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}
           <button type="submit" class="btn btn-outline-secondary">Sair</button>
@@ -37,18 +55,22 @@
     </nav>
   </header>
 
-  <main id="conteudo" class="container py-4">
+  <main id="conteudo" class="container py-4 py-md-5">
     {% for message in messages %}
-      <div class="alert alert-{% if message.level_tag == 'error' %}danger{% else %}{{ message.level_tag }}{% endif %}" role="status">{{ message }}</div>
+      <div class="alert alert-{% if message.level_tag == 'error' %}danger{% else %}{{ message.level_tag }}{% endif %}" role="{% if message.level_tag == 'error' or message.level_tag == 'warning' %}alert{% else %}status{% endif %}">{{ message }}</div>
     {% endfor %}
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="border-top bg-white py-3 mt-auto">
-    <div class="container d-flex flex-wrap gap-3 justify-content-center">
-      <a href="{% url 'termos' %}">Termos de Uso</a>
-      <a href="{% url 'privacidade' %}">Política de Privacidade</a>
+  <footer class="rodape py-4 mt-auto">
+    <div class="container d-flex flex-wrap gap-3 align-items-center justify-content-between">
+      <span>© {% now "Y" %} ConectaTEA</span>
+      <nav class="d-flex flex-wrap gap-3" aria-label="Documentos">
+        <a href="{% url 'termos' %}">Termos de Uso</a>
+        <a href="{% url 'privacidade' %}">Política de Privacidade</a>
+      </nav>
     </div>
   </footer>
 </body>
+{% endwith %}
 </html>

@@ -20,7 +20,7 @@ class DistribuicaoAtividadeForm(BootstrapMixin, forms.Form):
     def __init__(self, *args, profissional, **kwargs):
         super().__init__(*args, **kwargs)
         # RN01 e RN02: só atividades ativas do próprio profissional e alunos vinculados a ele.
-        self.fields['atividade'].queryset = profissional.atividades.filter(arquivada=False)
+        self.fields['atividade'].queryset = profissional.atividades.filter(arquivada=False, aluno__isnull=True)
         self.fields['alunos'].queryset = profissional.alunos.filter(user__is_active=True).select_related('user')
 
     def clean_prazo(self):
@@ -37,3 +37,12 @@ class AnotacaoForm(BootstrapMixin, forms.ModelForm):
         labels = {'texto': 'Anotação', 'visibilidade': 'Quem pode ler'}
         help_texts = {'visibilidade': 'Privada: só você lê. Compartilhada: a outra pessoa do vínculo também lê.'}
         widgets = {'texto': forms.Textarea(attrs={'rows': 4}), 'visibilidade': forms.RadioSelect}
+
+
+class ConclusaoForm(BootstrapMixin, forms.Form):
+    resposta = forms.CharField(
+        label='Sua resposta', max_length=5000,
+        error_messages={'required': 'Escreva a sua resposta antes de concluir.'},
+        help_text='Escreva o que você fez ou aprendeu nesta atividade.',
+        widget=forms.Textarea(attrs={'rows': 5}),
+    )

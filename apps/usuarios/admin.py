@@ -7,7 +7,7 @@ from django.db.models import Model, QuerySet
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 
-from .models import Aluno, Profissional, User
+from .models import Aluno, CodigoVerificacao, Profissional, User
 
 
 class SoftDeleteAdminMixin:
@@ -77,8 +77,9 @@ class UserAdmin(SoftDeleteAdminMixin, BaseUserAdmin):
         (None, {'fields': ['email', 'password']}),
         ('Dados', {'fields': ['name', 'role']}),
         ('Permissões', {'fields': ['is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions']}),
-        ('Datas', {'fields': ['last_login']}),
+        ('Datas', {'fields': ['last_login', 'termos_aceitos_em']}),
     ]
+    readonly_fields = ['last_login', 'termos_aceitos_em']
     add_fieldsets = [
         (None, {'fields': ['email', 'name', 'role', 'password1', 'password2']}),
     ]
@@ -108,3 +109,20 @@ class AlunoAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     list_filter = ['profissional']
     list_select_related = ['user', 'profissional__user']
     search_fields = ['user__name', 'guardian_name']
+
+
+@admin.register(CodigoVerificacao)
+class CodigoVerificacaoAdmin(admin.ModelAdmin):
+    """Só consulta (auditoria do RF03); o hash do código não é exibido."""
+
+    list_display = ['user', 'criado_em', 'expira_em', 'tentativas', 'usado_em']
+    list_select_related = ['user']
+    search_fields = ['user__email']
+    fields = ['user', 'criado_em', 'expira_em', 'tentativas', 'usado_em']
+    readonly_fields = fields
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

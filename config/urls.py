@@ -11,5 +11,6 @@ urlpatterns = [
     path('api/auth/me/', UserMeView.as_view(), name='auth_me'),
     path('painel/', include('apps.atividades.urls')),
     path('aluno/', include('apps.acompanhamento.urls')),
+    path('salas/', include('apps.salas.urls')),
     path('', include('apps.usuarios.urls')),
 ]

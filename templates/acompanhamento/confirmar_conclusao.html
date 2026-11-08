@@ -1,14 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Confirmar atividade{% endblock %}
+{% block title %}{{ atividade.title }}{% endblock %}
 {% block content %}
-<div class="cartao mx-auto text-center" style="max-width: 30rem;">
-  <h1 class="h4 mb-4">Você já terminou a atividade "{{ atividade.title }}"?</h1>
-  <div class="d-grid gap-3">
-    <form method="post" action="{% url 'concluir_atividade' atividade.pk %}">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-primary btn-lg w-100">Sim, terminei</button>
-    </form>
-    <a class="btn btn-outline-secondary btn-lg w-100" href="{% url 'aluno_atividades' %}">Não, voltar</a>
-  </div>
+<div class="cartao mx-auto" style="max-width: 44rem;">
+  <p class="text-body-secondary mb-1">{{ atividade.category }}</p>
+  <h1 class="h3 mb-3">{{ atividade.title }}</h1>
+  {% if atividade.description %}<p class="mb-4">{{ atividade.description|linebreaksbr }}</p>{% endif %}
+
+  {% if atividade.tipo_material %}
+    <h2 class="h5">Passo 1: abra o material</h2>
+    <a id="abrir-material" class="btn btn-outline-primary btn-lg w-100 mb-2" href="{% url 'material_atividade' atividade.pk %}" target="_blank" rel="noopener">
+      {% if atividade.tipo_material == 'pdf' %}Abrir PDF{% else %}Abrir formulário{% endif %}<span class="visually-hidden"> (abre em outra aba)</span>
+    </a>
+    <p id="status-material" class="small mb-4" role="status">{% if aberto %}✔ Você já abriu o material.{% else %}O material abre em outra aba. Depois, volte para esta página.{% endif %}</p>
+    <script>
+      document.getElementById('abrir-material').addEventListener('click', function () {
+        document.getElementById('status-material').textContent = '✔ Você já abriu o material.';
+        var aviso = document.getElementById('aviso-abrir');
+        if (aviso) { aviso.remove(); }
+      });
+    </script>
+    <h2 class="h5">Passo 2: escreva e conclua</h2>
+  {% endif %}
+
+  <form method="post" action="{% url 'concluir_atividade' atividade.pk %}" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-warning" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    {{ form.resposta.as_field_group }}
+    <div class="d-grid gap-3">
+      <button type="submit" class="btn btn-primary btn-lg"{% if not aberto %} aria-describedby="aviso-abrir"{% endif %}>Concluir atividade</button>
+      {% if not aberto %}<p id="aviso-abrir" class="small text-body-secondary mb-0 text-center">Para concluir, abra o material primeiro.</p>{% endif %}
+      <a class="btn btn-outline-secondary btn-lg" href="{% url 'aluno_atividades' %}">Voltar</a>
+    </div>
+  </form>
 </div>
 {% endblock %}

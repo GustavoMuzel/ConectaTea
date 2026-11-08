@@ -3,15 +3,17 @@ from django.urls import path
 from apps.acompanhamento.views import AnotacoesProfissionalView
 
 from .views import (
-    AlunosDoProfissionalView, ArquivarAtividadeView, AtividadeUpdateView, EvolucaoAlunoView, PainelView,
-    SalvarObservacaoView,
+    AlunosDoProfissionalView, AlunosSemVinculoView, ArquivarAtividadeView, AtividadeUpdateView, EvolucaoAlunoView,
+    MaterialAtividadeView, PainelView, SalvarObservacaoView,
 )
 
 urlpatterns = [
     path('', PainelView.as_view(), name='painel'),
     path('atividades/<int:pk>/editar/', AtividadeUpdateView.as_view(), name='editar_atividade'),
+    path('atividades/<int:pk>/material/', MaterialAtividadeView.as_view(), name='material_atividade'),
     path('atividades/<int:pk>/arquivar/', ArquivarAtividadeView.as_view(), name='arquivar_atividade'),
     path('alunos/', AlunosDoProfissionalView.as_view(), name='alunos_profissional'),
+    path('alunos/vincular/', AlunosSemVinculoView.as_view(), name='vincular_alunos'),
     path('alunos/<int:pk>/', EvolucaoAlunoView.as_view(), name='evolucao_aluno'),
     path('alunos/<int:aluno_pk>/anotacoes/', AnotacoesProfissionalView.as_view(), name='anotacoes_profissional'),
     path('alunos/<int:aluno_pk>/registros/<int:pk>/observacoes/', SalvarObservacaoView.as_view(),

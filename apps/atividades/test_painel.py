@@ -39,10 +39,16 @@ def test_painel_bloqueia_aluno_admin_profissional_sem_perfil_e_nao_aprovado(clie
     pendente = _prof('pendente@ex.com')
     Profissional.objects.filter(pk=pendente.pk).update(is_approved=False)
 
-    for user in [aluno, admin, sem_perfil, User.objects.get(pk=pendente.user_id)]:
+    for user in [aluno, admin, sem_perfil]:
         client.force_login(user)
         assert client.get(reverse('painel')).status_code == 403
         assert client.post(reverse('painel'), {'title': 'T', 'category': 'C'}).status_code == 403
+
+    # Profissional ainda não aprovado: volta ao início com o aviso, em vez de um 403 seco.
+    client.force_login(User.objects.get(pk=pendente.user_id))
+    for resp in [client.get(reverse('painel')), client.post(reverse('painel'), {'title': 'T', 'category': 'C'})]:
+        assert resp.status_code == 302 and resp.url == reverse('home')
+    assert 'aguarda a aprovação' in client.get(reverse('home')).content.decode()
     assert not Atividade.objects.exists()
 
 
@@ -67,6 +73,7 @@ def test_cadastrar_atividade_usa_o_profissional_da_sessao(client, prof):
     outro = _prof('outro@ex.com')
     resp = client.post(reverse('painel'), {
         'title': 'Cumprimentar', 'description': 'Dizer oi', 'category': 'social', 'profissional': outro.pk,
+        'tipo_material': 'formulario', 'link_formulario': 'https://forms.gle/abc',
     }, follow=True)
 
     atividade = Atividade.objects.get()
