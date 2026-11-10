@@ -87,6 +87,10 @@ O front-end é renderizado no servidor (SSR) utilizando os templates nativos do 
    | `BREVO_API_KEY` | Chave da API do Brevo, usada nos e-mails transacionais. Quando fica vazia, o sistema não envia nada e só anota o fato no log; o cadastro continua funcionando normalmente |
    | `BREVO_SENDER_EMAIL` | Endereço do remetente, configurado no Brevo |
    | `BREVO_SENDER_NAME` | Nome do remetente que aparece nos e-mails |
+   | `JITSI_DOMINIO` | Servidor do Jitsi Meet usado na videochamada da sala (padrão `meet.jit.si`) |
+   | `CONTATO_EMAIL` | E-mail de contato e do encarregado de dados (LGPD), exibido nos Termos e na Política de Privacidade |
+
+   > **Esqueci minha senha em desenvolvimento:** sem `BREVO_API_KEY` e com `DEBUG=True`, o código de 6 números aparece no terminal do `runserver`.
 
 5. Rode as migrações:
 
