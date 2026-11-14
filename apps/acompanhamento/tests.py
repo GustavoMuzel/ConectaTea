@@ -9,6 +9,8 @@ from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import RegistroEvolucao
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def registro():

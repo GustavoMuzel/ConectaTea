@@ -9,6 +9,8 @@ from apps.usuarios.models import Aluno
 
 from .models import MembroSala, ParticipacaoVideochamada, Sala, SolicitacaoVinculo
 
+pytestmark = pytest.mark.integration
+
 FORMS = {'tipo_material': 'formulario', 'link_formulario': 'https://forms.gle/abc'}
 
 

@@ -10,6 +10,8 @@ from apps.usuarios.models import Aluno, Profissional, User
 from .forms import DistribuicaoAtividadeForm
 from .models import Atribuicao
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 
 

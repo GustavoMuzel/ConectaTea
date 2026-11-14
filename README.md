@@ -87,10 +87,6 @@ O front-end é renderizado no servidor (SSR) utilizando os templates nativos do 
    | `BREVO_API_KEY` | Chave da API do Brevo, usada nos e-mails transacionais. Quando fica vazia, o sistema não envia nada e só anota o fato no log; o cadastro continua funcionando normalmente |
    | `BREVO_SENDER_EMAIL` | Endereço do remetente, configurado no Brevo |
    | `BREVO_SENDER_NAME` | Nome do remetente que aparece nos e-mails |
-   | `JITSI_DOMINIO` | Servidor do Jitsi Meet usado na videochamada da sala (padrão `meet.jit.si`) |
-   | `CONTATO_EMAIL` | E-mail de contato e do encarregado de dados (LGPD), exibido nos Termos e na Política de Privacidade |
-
-   > **Esqueci minha senha em desenvolvimento:** sem `BREVO_API_KEY` e com `DEBUG=True`, o código de 6 números aparece no terminal do `runserver`.
 
 5. Rode as migrações:
 
@@ -114,9 +110,21 @@ O front-end é renderizado no servidor (SSR) utilizando os templates nativos do 
 
 ## Testes
 
+Os testes ficam separados em dois grupos, pelos marcadores do pytest registrados no `pytest.ini`:
+
 ```bash
-pytest
+pytest -m unit          # testes unitários: regras de negócio, sem banco e sem rede (segundos)
+pytest -m integration   # testes de integração: views, API, services e banco de teste
+pytest                  # os dois grupos
 ```
+
+- **Unitários** (`apps/*/test_unitario.py`, marcados com `pytestmark = pytest.mark.unit`): usam objetos em memória,
+  sem `.save()`, e simulam a API do Brevo. O pytest-django recusa qualquer acesso ao banco, e o `conftest.py`
+  recusa qualquer conexão de rede.
+- **Integração** (os demais arquivos de teste, marcados com `pytestmark = pytest.mark.integration`): passam pelas
+  URLs, views, formulários e banco. O pytest-django cria um banco de teste separado e o apaga no fim.
+- O `conftest.py` também confere a separação: teste sem marcador, com os dois marcadores, ou unitário que pede o
+  banco, interrompe a execução com erro.
 
 ## Qualidade de código
 
@@ -124,7 +132,18 @@ pytest
 flake8
 ```
 
+As regras ficam no `.flake8`: pycodestyle (estilo), pyflakes (import ou variável sem uso, nome indefinido) e
+mccabe (complexidade máxima 10).
+
 ## Integração Contínua (CI)
 
-A cada commit ou pull request para `main`, o GitHub Actions (`.github/workflows/ci.yml`)
-roda automaticamente os testes e a validação de código do projeto.
+A cada Pull Request para a `main`, e depois do merge, o GitHub Actions (`.github/workflows/ci.yml`) roda três
+checagens em paralelo, cada uma em um ambiente limpo (`ubuntu-latest`, Python 3.13):
+
+| Check | Comando | O que valida |
+|---|---|---|
+| **Testes unitários** | `pytest -m unit` | Regras de negócio, sem banco e sem rede |
+| **Testes de integração** | `manage.py check`, `makemigrations --check` e `pytest -m integration` | Views, API, services e banco, num PostgreSQL 16 criado só para o job |
+| **Linter** | `flake8` | Estilo e erros estáticos, com as regras do `.flake8` |
+
+Se qualquer checagem falhar, o PR mostra um X vermelho antes da revisão.

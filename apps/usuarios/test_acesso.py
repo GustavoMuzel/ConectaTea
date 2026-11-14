@@ -11,6 +11,8 @@ from django.utils import timezone
 
 from .models import CodigoVerificacao, Profissional, User
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 
 
