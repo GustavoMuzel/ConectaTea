@@ -3,16 +3,36 @@
 {% block content %}
 <div class="cartao mx-auto" style="max-width: 46rem;">
   <h1 class="h3 mb-3">Minha equipe</h1>
-  {% if sala %}
-    <p>Estas pessoas acompanham você no ConectaTEA:</p>
-    <ul class="list-unstyled d-grid gap-2 mb-4">
+  {% if ativa %}
+    <section class="border rounded p-3 mb-4" aria-labelledby="t-proxima">
+      <h2 id="t-proxima" class="h5">Videochamada</h2>
+      {% if sala.chamada_vigente %}
+        <p class="fs-5 mb-1"><strong>{{ sala.proxima_chamada|date:"l, d/m/Y" }}</strong>, às <strong>{{ sala.proxima_chamada|date:"H\hi" }}</strong></p>
+        {% if sala.pauta_chamada %}<p class="mb-3">O que vamos fazer: {{ sala.pauta_chamada }}</p>{% endif %}
+        {% include "salas/_resposta_chamada.html" with voltar="equipe" %}
+        {% if sala.chamada_aberta_para_aluno %}
+          <a class="btn btn-primary btn-lg w-100" href="{% url 'videochamada' sala.pk %}">Entrar na videochamada</a>
+        {% else %}
+          <p class="mb-0">O botão para entrar aparece no dia <strong>{{ sala.chamada_abre_em|date:"d/m" }} às {{ sala.chamada_abre_em|date:"H\hi" }}</strong>, 15 minutos antes da chamada.</p>
+        {% endif %}
+      {% else %}
+        <p class="mb-0">Ainda não tem videochamada marcada. Quem marca é o seu profissional responsável, com dia e hora. Quando ele marcar, aparece aqui.</p>
+      {% endif %}
+      {% if na_chamada %}<p class="mt-2 mb-0" role="status"><strong>Agora na chamada:</strong> {% for p in na_chamada %}{{ p.user.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+    </section>
+
+    <h2 class="h5">Quem acompanha você</h2>
+    <ul class="list-unstyled d-grid gap-2 mb-0">
       <li class="border rounded p-3"><span class="fw-semibold">{{ sala.dono.user.name }}</span> · {{ sala.dono.especialidade }}<br><span class="small text-body-secondary">Responsável pela sua sala</span></li>
       {% for membro in membros %}
         <li class="border rounded p-3"><span class="fw-semibold">{{ membro.profissional.user.name }}</span> · {{ membro.profissional.especialidade }}</li>
       {% endfor %}
     </ul>
-    <a class="btn btn-primary btn-lg w-100" href="{% url 'videochamada' sala.pk %}" target="_blank" rel="noopener">Entrar na videochamada<span class="visually-hidden"> (abre em outra aba)</span></a>
-    <p class="small text-body-secondary mt-3 mb-0">A chamada abre em outra aba. Entre só no horário combinado com o seu profissional.</p>
+  {% elif sala %}
+    <div class="alert alert-warning mb-0" role="status">
+      <span class="alert-titulo">Sua sala está parada</span>
+      O profissional responsável não está com a conta liberada agora. Enquanto isso, a videochamada fica fechada. Se tiver dúvida, fale com o seu responsável.
+    </div>
   {% else %}
     <p class="mb-0">Sua equipe vai aparecer aqui.</p>
   {% endif %}

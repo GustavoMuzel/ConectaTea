@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Sobre o TEA{% endblock %}
+{% block content %}
+<article class="cartao documento mx-auto">
+  <div class="d-flex align-items-center gap-3 mb-1">
+    {% include "partials/_laco.html" with gid="sobre" classe="laco-pequeno" titulo="" %}
+    <h1 class="h2 mb-0">Sobre o TEA</h1>
+  </div>
+  <p class="text-body-secondary">Transtorno do Espectro Autista · Última atualização: 14/11/2026</p>
+  <p>Esta página explica, em linguagem simples, o que é o TEA, como ele aparece no dia a dia, quais direitos a pessoa autista tem e como o ConectaTEA foi pensado a partir dessas informações. A base principal é o <em>Guia de orientações sobre Transtorno do Espectro Autista</em> da UNESP, junto com o DSM-5-TR, a Organização Mundial da Saúde e a legislação brasileira (veja as <a href="#t12">referências</a>).</p>
+  <div class="alert alert-info" role="note">
+    <span class="alert-titulo">Importante</span>
+    Esta página é informativa. Ela não serve para diagnosticar ninguém e não substitui a avaliação de um profissional de saúde.
+  </div>
+
+  <nav class="sumario my-4" aria-label="Sumário">
+    <p class="fw-bold mb-2">Nesta página</p>
+    <ol>
+      <li><a href="#t1">O que é o TEA</a></li>
+      <li><a href="#t2">Como o TEA aparece no dia a dia</a></li>
+      <li><a href="#t3">Níveis de suporte</a></li>
+      <li><a href="#t4">Causas e quantas pessoas</a></li>
+      <li><a href="#t5">Potencialidades</a></li>
+      <li><a href="#t6">Mitos e verdades</a></li>
+      <li><a href="#t7">Como apoiar no dia a dia</a></li>
+      <li><a href="#t8">Como o ConectaTEA usa isso</a></li>
+      <li><a href="#t9">Direitos da pessoa autista</a></li>
+      <li><a href="#t10">Palavras e símbolos</a></li>
+      <li><a href="#t11">Onde buscar ajuda</a></li>
+      <li><a href="#t12">Referências</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="t1">1. O que é o TEA</h2>
+  <p>O Transtorno do Espectro Autista é uma condição do <strong>neurodesenvolvimento</strong>: tem a ver com a forma como o cérebro se desenvolve e funciona. Segundo o DSM-5, ele envolve, de forma persistente:</p>
+  <ul>
+    <li>diferenças na <strong>comunicação e na interação social</strong>;</li>
+    <li><strong>padrões restritos e repetitivos</strong> de comportamento, interesses ou atividades.</li>
+  </ul>
+  <p>A palavra <strong>espectro</strong> existe porque essas características aparecem de jeitos muito diferentes em cada pessoa. Desde o DSM-5, o antigo "autismo clássico" e a "síndrome de Asperger" fazem parte do mesmo diagnóstico: TEA. Os sinais costumam aparecer já na primeira infância.</p>
+
+  <h2 id="t2">2. Como o TEA aparece no dia a dia</h2>
+  <p>Algumas situações que podem ser difíceis para adolescentes autistas, segundo o guia da UNESP:</p>
+  <ul>
+    <li><strong>Linguagem:</strong> entender ironia, piadas, metáforas e duplo sentido; perguntas muito abertas, sem orientação clara.</li>
+    <li><strong>Interação:</strong> perceber expressões do rosto, tom de voz e linguagem corporal; começar, manter e terminar uma conversa; trabalhar em grupo; manter contato visual.</li>
+    <li><strong>Rotina:</strong> lidar com mudanças, situações novas e imprevistos; organizar o tempo e fazer várias coisas ao mesmo tempo.</li>
+    <li><strong>Sensorial:</strong> luzes fortes, barulhos, cheiros, sabores ou texturas podem incomodar muito (hipersensibilidade) ou quase não ser percebidos (hipossensibilidade).</li>
+    <li><strong>Emoções:</strong> reconhecer, regular e expressar o que sente; saber como e quando pedir ajuda.</li>
+  </ul>
+  <p>Sem apoio, essas dificuldades podem aumentar a ansiedade, baixar a autoestima e levar ao isolamento. Com apoio adequado, a pessoa participa e aprende do seu jeito.</p>
+
+  <h2 id="t3">3. Níveis de suporte</h2>
+  <p>O DSM-5-TR descreve o TEA em três níveis, de acordo com <strong>quanto apoio</strong> a pessoa precisa no dia a dia:</p>
+  <ul>
+    <li><strong>Nível 1:</strong> exige apoio.</li>
+    <li><strong>Nível 2:</strong> exige apoio substancial.</li>
+    <li><strong>Nível 3:</strong> exige apoio muito substancial.</li>
+  </ul>
+  <p>O nível pode mudar ao longo da vida e conforme o ambiente. Por isso, hoje se prefere falar em <strong>nível de suporte</strong>, e não em autismo "leve" ou "grave". Na Classificação Internacional de Doenças (CID-11), o TEA tem o código <strong>6A02</strong>.</p>
+
+  <h2 id="t4">4. Causas e quantas pessoas</h2>
+  <p>A causa do TEA ainda não é totalmente conhecida. As pesquisas apontam para <strong>várias causas juntas</strong>, com forte participação de fatores genéticos, além de fatores biológicos e ambientais. O TEA não é causado pela forma como a família educa a criança.</p>
+  <ul>
+    <li>A Organização Mundial da Saúde estima que cerca de <strong>1 em cada 100 crianças</strong> no mundo é autista.</li>
+    <li>Nos Estados Unidos, o CDC estimou, em 2025, <strong>1 em cada 31 crianças de 8 anos</strong> (dados de 2022). O número cresce, em grande parte, porque o diagnóstico melhorou e ficou mais acessível.</li>
+    <li>O diagnóstico é feito cerca de 3 a 4 vezes mais em meninos do que em meninas. Muitas meninas ainda são diagnosticadas tarde.</li>
+  </ul>
+
+  <h2 id="t5">5. Potencialidades</h2>
+  <p>O TEA não define tudo o que a pessoa é. O guia da UNESP lembra habilidades que aparecem com frequência em pessoas autistas, como:</p>
+  <ul>
+    <li>atenção aos detalhes e precisão;</li>
+    <li>boa memória e facilidade com informações visuais;</li>
+    <li>dedicação e foco intensos nos temas de interesse;</li>
+    <li>pensamento lógico para resolver problemas;</li>
+    <li>respeito às regras e gosto por rotinas;</li>
+    <li>senso de justiça, sinceridade e honestidade.</li>
+  </ul>
+  <p>Cada pessoa é única: ninguém precisa ter todas essas habilidades.</p>
+
+  <h2 id="t6">6. Mitos e verdades</h2>
+  <details class="mb-2">
+    <summary class="fw-semibold">"O TEA tem cura."</summary>
+    <p class="mt-2"><strong>Mito.</strong> O TEA acompanha a pessoa a vida toda. Com apoio (terapias, família, escola, amigos), ela se desenvolve e ganha qualidade de vida.</p>
+  </details>
+  <details class="mb-2">
+    <summary class="fw-semibold">"O TEA é uma doença e pode passar para outra pessoa."</summary>
+    <p class="mt-2"><strong>Mito.</strong> É uma condição do neurodesenvolvimento. Não é contagioso.</p>
+  </details>
+  <details class="mb-2">
+    <summary class="fw-semibold">"Vacinas causam autismo."</summary>
+    <p class="mt-2"><strong>Mito.</strong> Os estudos científicos não mostram ligação entre vacinas e autismo, segundo a Organização Mundial da Saúde.</p>
+  </details>
+  <details class="mb-2">
+    <summary class="fw-semibold">"Toda pessoa autista tem deficiência intelectual."</summary>
+    <p class="mt-2"><strong>Mito.</strong> Uma parte das pessoas autistas tem deficiência intelectual, e muitas não têm. O espectro é muito variado.</p>
+  </details>
+  <details class="mb-2">
+    <summary class="fw-semibold">"Toda pessoa autista é um gênio."</summary>
+    <p class="mt-2"><strong>Mito.</strong> Como qualquer pessoa, cada autista tem facilidades e dificuldades.</p>
+  </details>
+  <details class="mb-2">
+    <summary class="fw-semibold">"Pessoas autistas não têm sentimentos."</summary>
+    <p class="mt-2"><strong>Mito.</strong> Elas sentem, e muito. Às vezes têm dificuldade de identificar ou mostrar o que sentem, e expressam afeto de jeitos diferentes. Piadas e apelidos machucam.</p>
+  </details>
+  <details class="mb-2">
+    <summary class="fw-semibold">"Pessoas autistas não querem ter amigos."</summary>
+    <p class="mt-2"><strong>Mito.</strong> A interação social pode ser difícil, mas isso não quer dizer falta de interesse. Preferir fazer algumas coisas sozinho também deve ser respeitado.</p>
+  </details>
+  <details class="mb-4">
+    <summary class="fw-semibold">"Pessoas autistas não conseguem aprender."</summary>
+    <p class="mt-2"><strong>Mito.</strong> Elas aprendem no seu tempo e do seu jeito, quando o ensino considera as suas necessidades.</p>
+  </details>
+
+  <h2 id="t7">7. Como apoiar no dia a dia</h2>
+  <ul>
+    <li>Fale com <strong>frases curtas, claras e literais</strong>. Evite ironia e duplo sentido.</li>
+    <li><strong>Avise antes</strong> sobre mudanças e mantenha rotinas previsíveis. Evite surpresas.</li>
+    <li>Explique o <strong>objetivo</strong> de cada tarefa e o que se espera dela.</li>
+    <li>Dê <strong>tempo</strong> para responder e para terminar as atividades.</li>
+    <li><strong>Não exija contato visual</strong> e respeite o espaço pessoal. Evite tocar sem avisar.</li>
+    <li>Diminua barulho, luz forte e outros estímulos quando possível.</li>
+    <li>Comece conversas por um <strong>assunto de interesse</strong> da pessoa.</li>
+    <li>Não exponha a condição ou as dificuldades da pessoa para os outros.</li>
+  </ul>
+
+  <h2 id="t8">8. Como o ConectaTEA usa isso</h2>
+  <ul>
+    <li><strong>Baixa carga sensorial:</strong> cores calmas, sem animações, sons ou piscadas; letra grande, alto contraste e "reduzir estímulos" em <a href="{% url 'preferencias' %}">Preferências</a>.</li>
+    <li><strong>Linguagem literal:</strong> botões e avisos dizem exatamente o que vai acontecer ("Concluir atividade", "Voltar").</li>
+    <li><strong>Previsibilidade:</strong> o menu fica sempre no mesmo lugar e as ações importantes pedem confirmação, para evitar toques por engano.</li>
+    <li><strong>Passos curtos:</strong> cada atividade tem instruções, um material (PDF ou formulário) e um campo para a resposta, em poucos passos.</li>
+    <li><strong>Tempo próprio:</strong> o aluno pode refazer atividades, e o histórico mostra a evolução sem comparar com outros alunos.</li>
+    <li><strong>Equipe junto:</strong> profissionais de áreas diferentes acompanham o mesmo aluno na sala dele, e o aluno vê quem faz parte da equipe.</li>
+  </ul>
+
+  <h2 id="t9">9. Direitos da pessoa autista</h2>
+  <ul>
+    <li><strong>Lei nº 12.764/2012 (Lei Berenice Piana):</strong> cria a Política Nacional de Proteção dos Direitos da Pessoa com TEA. A pessoa autista é considerada <strong>pessoa com deficiência para todos os efeitos legais</strong>. Regulamentada pelo Decreto nº 8.368/2014.</li>
+    <li><strong>Lei nº 13.146/2015 (Lei Brasileira de Inclusão):</strong> garante direitos e acessibilidade à pessoa com deficiência, inclusive na educação e no meio digital.</li>
+    <li><strong>Lei nº 13.977/2020 (Lei Romeo Mion):</strong> cria a <strong>Ciptea</strong>, carteira de identificação da pessoa com TEA, para garantir atenção integral e prioridade no atendimento.</li>
+    <li><strong>Lei nº 13.652/2018:</strong> institui no Brasil o <strong>2 de abril</strong> como Dia Nacional de Conscientização sobre o Autismo.</li>
+    <li><strong>Lei Geral de Proteção de Dados (Lei nº 13.709/2018):</strong> dados de crianças e adolescentes e dados de saúde têm proteção especial. Veja a nossa <a href="{% url 'privacidade' %}">Política de Privacidade</a>.</li>
+  </ul>
+
+  <h2 id="t10">10. Palavras e símbolos</h2>
+  <ul>
+    <li>Prefira <strong>"pessoa autista"</strong> ou <strong>"pessoa com TEA"</strong>. Evite "portador de autismo", "sofre de autismo" ou "doente".</li>
+    <li>Prefira <strong>"nível de suporte"</strong> a "autismo leve" ou "grave".</li>
+  </ul>
+  <figure class="d-flex flex-wrap align-items-center gap-3 border rounded p-3 my-3">
+    {% include "partials/_laco.html" with gid="t10" classe="" titulo="Laço da conscientização do autismo, com peças coloridas" %}
+    <figcaption class="mb-0" style="flex: 1 1 16rem;"><strong>Laço com peças coloridas:</strong> é o símbolo mundial da conscientização sobre o autismo, lembrado todo <strong>2 de abril</strong>. Segundo o guia da UNESP, as peças de cores diferentes representam a complexidade do TEA e a diversidade das pessoas e das famílias. É o símbolo usado no ConectaTEA, em cores suaves para respeitar a baixa carga sensorial.</figcaption>
+  </figure>
+  <figure class="d-flex flex-wrap align-items-center gap-3 border rounded p-3 my-3">
+    {% include "partials/_infinito.html" with gid="t10b" classe="" titulo="Símbolo do infinito da neurodiversidade" %}
+    <figcaption class="mb-0" style="flex: 1 1 16rem;"><strong>Infinito:</strong> representa a <strong>neurodiversidade</strong>, a ideia de que existem muitos jeitos de o cérebro funcionar. Muitas pessoas autistas preferem este símbolo ao quebra-cabeça, porque a peça pode passar a ideia de algo "faltando" ou "a ser resolvido". Os dois símbolos aparecem nesta página para mostrar essa discussão.</figcaption>
+  </figure>
+
+  <h2 id="t11">11. Onde buscar ajuda</h2>
+  <ul>
+    <li>A avaliação e o diagnóstico são feitos por profissionais de saúde, como médico (neuropediatra ou psiquiatra), psicólogo, fonoaudiólogo e terapeuta ocupacional, de preferência em equipe.</li>
+    <li>No SUS, o caminho começa pela <strong>Unidade Básica de Saúde (UBS)</strong>. Crianças e adolescentes também podem ser atendidos no <strong>CAPS infantojuvenil (CAPSij)</strong> e em centros especializados de reabilitação.</li>
+    <li>Na escola, procure a coordenação e o <strong>Atendimento Educacional Especializado (AEE)</strong>.</li>
+  </ul>
+
+  <h2 id="t12">12. Referências</h2>
+  <ul class="small">
+    <li>UNESP. <em>Guia de orientações sobre Transtorno do Espectro Autista</em>. Educadiversidade, Universidade Estadual Paulista. Disponível em: <a href="https://educadiversidade.unesp.br/guia-de-orientacoes-sobre-transtorno-do-espectro-autista/" rel="noopener" target="_blank">educadiversidade.unesp.br</a>.</li>
+    <li>AMERICAN PSYCHIATRIC ASSOCIATION. <em>DSM-5-TR: Manual diagnóstico e estatístico de transtornos mentais</em>. 5. ed. rev. Porto Alegre: Artmed, 2023.</li>
+    <li>ORGANIZAÇÃO MUNDIAL DA SAÚDE. <em>Autism</em> (folha informativa). Genebra: OMS, 2023.</li>
+    <li>CENTERS FOR DISEASE CONTROL AND PREVENTION. Prevalence and Early Identification of Autism Spectrum Disorder Among Children Aged 4 and 8 Years (ADDM Network, 2022). <em>MMWR Surveillance Summaries</em>, 2025.</li>
+    <li>BRASIL. Lei nº 12.764, de 27 de dezembro de 2012; Decreto nº 8.368, de 2 de dezembro de 2014; Lei nº 13.146, de 6 de julho de 2015; Lei nº 13.652, de 13 de abril de 2018; Lei nº 13.709, de 14 de agosto de 2018; Lei nº 13.977, de 8 de janeiro de 2020.</li>
+    <li>AUTISMO E REALIDADE. <em>Os símbolos do autismo</em>. 2019.</li>
+  </ul>
+</article>
+{% endblock %}

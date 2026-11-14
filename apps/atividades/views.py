@@ -75,6 +75,10 @@ class AlunosDoProfissionalView(ProfissionalRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         profissional = self.request.user.profissional
+        from apps.acompanhamento.models import PedidoAjuda
+        kwargs['pedidos_ajuda'] = (PedidoAjuda.objects.filter(aluno__profissional=profissional,
+                                                              respondido_em__isnull=True)
+                                   .select_related('aluno__user', 'atividade').order_by('criado_em'))
         kwargs['da_equipe'] = (alunos_do_profissional(profissional).exclude(profissional=profissional)
                                .select_related('user', 'sala__dono__user').order_by('user__name'))
         return super().get_context_data(**kwargs)

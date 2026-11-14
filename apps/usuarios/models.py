@@ -78,20 +78,67 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.is_aluno and self.aluno.profissional_id is None
 
 
+UFS = [(uf, uf) for uf in (
+    'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR',
+    'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO',
+)]
+
+
 class Profissional(models.Model):
+    class Profissao(models.TextChoices):
+        PEDAGOGIA = 'pedagogia', 'Pedagogia'
+        PSICOLOGIA = 'psicologia', 'Psicologia'
+        TERAPIA_OCUPACIONAL = 'terapia_ocupacional', 'Terapia ocupacional'
+        FONOAUDIOLOGIA = 'fonoaudiologia', 'Fonoaudiologia'
+
+    # Conselho de classe de cada profissão: (sigla, nome, site oficial onde o gestor confere o registro).
+    # Pedagogia não tem conselho profissional: a conferência é feita por outro documento (ex.: da instituição).
+    CONSELHOS = {
+        Profissao.PSICOLOGIA: ('CRP', 'Conselho Regional de Psicologia', 'https://cadastro.cfp.org.br/'),
+        Profissao.TERAPIA_OCUPACIONAL: ('CREFITO', 'Conselho Regional de Fisioterapia e Terapia Ocupacional',
+                                        'https://www.coffito.gov.br/'),
+        Profissao.FONOAUDIOLOGIA: ('CRFa', 'Conselho Regional de Fonoaudiologia',
+                                   'https://www.fonoaudiologia.org.br/'),
+    }
+
     id = models.BigAutoField(primary_key=True, db_column='profissional_id')
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profissional')
+    # Rótulo exibido nas telas: profissão e, se informada, a área de atuação (ex.: "Psicologia · ABA").
     especialidade = models.CharField(max_length=100)
+    profissao = models.CharField('profissão', max_length=30, choices=Profissao.choices, blank=True)
+    uf_registro = models.CharField('UF do registro', max_length=2, choices=UFS, blank=True)
+    numero_registro = models.CharField('número do registro', max_length=20, blank=True)
+    # Campo antigo, de texto livre; contas novas preenchem com o registro formatado.
     registro_profissional = models.CharField('registro profissional', max_length=50, null=True, blank=True)
     is_approved = models.BooleanField('aprovado', default=False)
+    # Quem aprovou e quando: a aprovação vale como conferência do registro no site do conselho.
+    aprovado_em = models.DateTimeField('aprovado em', null=True, blank=True)
+    aprovado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+                                     verbose_name='aprovado por')
 
     class Meta:
         db_table = 'profissionais'
         verbose_name = 'profissional'
         verbose_name_plural = 'profissionais'
+        constraints = [
+            # O mesmo registro não pode servir para duas contas.
+            models.UniqueConstraint(fields=['profissao', 'uf_registro', 'numero_registro'],
+                                    condition=~models.Q(numero_registro=''), name='registro_unico_por_conselho'),
+        ]
 
     def __str__(self):
         return f'{self.user.name} ({self.especialidade})'
+
+    @property
+    def conselho(self):
+        """(sigla, nome, site) do conselho da profissão, ou None (pedagogia e contas antigas)."""
+        return self.CONSELHOS.get(self.profissao)
+
+    @property
+    def registro_formatado(self):
+        if self.conselho and self.numero_registro:
+            return f'{self.conselho[0]}-{self.uf_registro} {self.numero_registro}'
+        return self.registro_profissional or ''
 
 
 class Aluno(models.Model):

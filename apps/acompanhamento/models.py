@@ -127,3 +127,32 @@ class LogAcesso(models.Model):
 
     def __str__(self):
         return f'{self.user} - {self.acao} ({self.aluno})'
+
+
+class PedidoAjuda(models.Model):
+    """Botão "Preciso de ajuda" da atividade: o aluno avisa o profissional responsável, que marca como respondido.
+
+    Saber pedir ajuda é uma das dificuldades citadas no guia da UNESP; o pedido tem um clique e texto opcional.
+    """
+
+    id = models.BigAutoField(primary_key=True, db_column='pedido_ajuda_id')
+    aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name='pedidos_ajuda')
+    atividade = models.ForeignKey(Atividade, on_delete=models.PROTECT, related_name='pedidos_ajuda')
+    mensagem = models.TextField('o que está difícil', blank=True)
+    criado_em = models.DateTimeField('pedido em', auto_now_add=True)
+    respondido_em = models.DateTimeField('respondido em', null=True, blank=True)
+    respondido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+
+    class Meta:
+        db_table = 'pedidos_ajuda'
+        verbose_name = 'pedido de ajuda'
+        verbose_name_plural = 'pedidos de ajuda'
+        ordering = ['-criado_em', '-pk']
+        constraints = [
+            # Um pedido aberto por atividade: clicar de novo não manda outro aviso.
+            models.UniqueConstraint(fields=['aluno', 'atividade'], condition=models.Q(respondido_em__isnull=True),
+                                    name='um_pedido_de_ajuda_aberto_por_atividade'),
+        ]
+
+    def __str__(self):
+        return f'{self.aluno} pediu ajuda em {self.atividade}'

@@ -40,7 +40,7 @@ def test_aluno_aceita_cria_vinculo_sala_e_log(client, criar_prof, criar_aluno):
     assert 'Ana' in client.get(reverse('home')).content.decode()  # o pedido aparece para o aluno
 
     resp = client.post(reverse('responder_vinculo', args=[pedido.pk, 'aceitar']))
-    assert resp.url == reverse('aluno_atividades')
+    assert resp.url == reverse('aluno_painel')
     aluno.refresh_from_db()
     assert aluno.profissional == ana
     assert Sala.objects.get(aluno=aluno).dono == ana

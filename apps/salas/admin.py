@@ -30,7 +30,8 @@ class SolicitacaoVinculoAdmin(admin.ModelAdmin):
 class ParticipacaoVideochamadaAdmin(admin.ModelAdmin):
     """Só consulta: registro de quem entrou na chamada (RF13)."""
 
-    list_display = ['sala', 'user', 'entrou_em']
+    list_display = ['sala', 'user', 'forma', 'acionada_em', 'entrou_em', 'saiu_em']
+    list_filter = ['forma']
     list_select_related = ['sala__aluno__user', 'user']
 
     def has_add_permission(self, request):

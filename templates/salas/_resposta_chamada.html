@@ -1,0 +1,11 @@
+{% if sala.resposta_aluno == 'sim' %}
+  <p class="mb-2" role="status">✔ Você avisou que vai participar.</p>
+{% elif sala.resposta_aluno == 'nao' %}
+  <p class="mb-2" role="status">Você avisou que não vai conseguir. O seu profissional pode marcar outro horário.</p>
+{% endif %}
+<form method="post" class="d-flex flex-wrap gap-2 mb-3" aria-label="Você vai participar?">
+  {% csrf_token %}
+  <input type="hidden" name="voltar" value="{{ voltar }}">
+  <button type="submit" formaction="{% url 'responder_chamada' 'sim' %}" class="btn {% if sala.resposta_aluno == 'sim' %}btn-primary{% else %}btn-outline-primary{% endif %}">Vou participar</button>
+  <button type="submit" formaction="{% url 'responder_chamada' 'nao' %}" class="btn btn-outline-secondary">Não vou conseguir</button>
+</form>

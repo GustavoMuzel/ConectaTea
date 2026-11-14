@@ -1,21 +1,23 @@
-import hashlib
+import csv
+import json
 from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
-from django.core.cache import cache
 from django.db import transaction
+from django.http import HttpResponse
 from django.db.models import Count
 from django.db.models.functions import TruncWeek
 from django.shortcuts import get_object_or_404, redirect, resolve_url
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.debug import sensitive_post_parameters
-from django.views.generic import CreateView, FormView, TemplateView, UpdateView
+from django.views.generic import CreateView, FormView, ListView, TemplateView, UpdateView
 from rest_framework.generics import RetrieveAPIView
 
 from apps.acompanhamento.models import RegistroEvolucao
@@ -25,7 +27,7 @@ from .forms import CadastroForm, CodigoNovaSenhaForm, LoginForm, PreferenciasFor
 from .mixins import GestorRequiredMixin
 from .models import Aluno, PreferenciaAcessibilidade, Profissional, User
 from .serializers import UserMeSerializer
-from .services import recuperacao
+from .services import limites, recuperacao
 from .services.email import enviar_boas_vindas, enviar_notificacao_aluno_criado
 
 
@@ -78,10 +80,8 @@ class RecuperarSenhaView(FormView):
     def form_valid(self, form):
         email = form.cleaned_data['email'].lower()
         self.request.session[SESSAO_EMAIL_RECUPERACAO] = email
-        # Limite por e-mail digitado, exista ou não a conta (não vira oráculo). cache.add é atômico.
-        # ponytail: LocMemCache é por processo; com vários workers, configurar CACHES compartilhado.
-        chave = 'reset_limit_' + hashlib.sha256(email.encode()).hexdigest()
-        if cache.add(chave, 1, timeout=LIMITE_RECUPERACAO_SEGUNDOS):
+        # Limite por e-mail digitado, exista ou não a conta (não vira oráculo). Cache compartilhado (settings).
+        if limites.pode_pedir_codigo(email, LIMITE_RECUPERACAO_SEGUNDOS):
             recuperacao.solicitar_codigo(email)
             messages.info(self.request,
                           'Se existir uma conta com esse e-mail, enviamos um código de 6 números para ele.')
@@ -130,6 +130,10 @@ class CadastroView(CreateView):
     template_name = 'usuarios/cadastro.html'
     success_url = reverse_lazy('home')
 
+    def get_context_data(self, **kwargs):
+        kwargs['profissoes_com_conselho'] = json.dumps([str(p) for p in Profissional.CONSELHOS])
+        return super().get_context_data(**kwargs)
+
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return redirect('home')
@@ -158,7 +162,7 @@ class HomeView(TemplateView):
         if request.user.is_profissional:
             return redirect('painel')
         if request.user.is_aluno and not request.user.is_aluno_sem_vinculo:
-            return redirect('aluno_atividades')
+            return redirect('aluno_painel')
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -180,6 +184,12 @@ class PrivacidadeView(TemplateView):
     template_name = 'usuarios/privacidade.html'
 
 
+class SobreTeaView(TemplateView):
+    """Página pública e informativa sobre o TEA, com as fontes citadas."""
+
+    template_name = 'usuarios/sobre_tea.html'
+
+
 class AdminDashboardView(GestorRequiredMixin, TemplateView):
     """`/painel-gestao/`: visão gerencial simplificada, alternativa ao admin técnico do Django."""
 
@@ -193,6 +203,8 @@ class AdminDashboardView(GestorRequiredMixin, TemplateView):
         kwargs['total_profissionais_aprovados'] = Profissional.objects.filter(is_approved=True).count()
         kwargs['total_profissionais_pendentes'] = len(pendentes)
         kwargs['profissionais_pendentes'] = pendentes
+        kwargs['profissionais_aprovados'] = (Profissional.objects.filter(is_approved=True, user__is_active=True)
+                                             .select_related('user', 'aprovado_por').order_by('user__name'))
         kwargs['total_atividades'] = Atividade.objects.count()
         # Conclusões do sistema todo por semana, últimos 3 meses (mesmo padrão do dashboard do profissional).
         desde = timezone.now() - timedelta(days=90)
@@ -208,13 +220,29 @@ class AdminDashboardView(GestorRequiredMixin, TemplateView):
 
 
 class AprovarProfissionalGestaoView(GestorRequiredMixin, View):
+    """Aprovar vale como conferência do registro no conselho: grava quem aprovou e quando."""
+
     http_method_names = ['post']
 
     def post(self, request, pk):
-        profissional = get_object_or_404(Profissional, pk=pk)
+        profissional = get_object_or_404(Profissional.objects.select_related('user'), pk=pk)
         profissional.is_approved = True
-        profissional.save(update_fields=['is_approved'])
+        profissional.aprovado_em, profissional.aprovado_por = timezone.now(), request.user
+        profissional.save(update_fields=['is_approved', 'aprovado_em', 'aprovado_por'])
         messages.success(request, f'Profissional "{profissional.user.name}" aprovado.')
+        return redirect('painel_gestao')
+
+
+class RevogarProfissionalGestaoView(GestorRequiredMixin, View):
+    """Tira a aprovação: o profissional perde o painel, os alunos, as salas e a videochamada na hora."""
+
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        profissional = get_object_or_404(Profissional.objects.select_related('user'), pk=pk, is_approved=True)
+        profissional.is_approved = False
+        profissional.save(update_fields=['is_approved'])
+        messages.warning(request, f'Aprovação de "{profissional.user.name}" revogada.')
         return redirect('painel_gestao')
 
 
@@ -231,3 +259,70 @@ class PreferenciasView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Preferências salvas.')
         return super().form_valid(form)
+
+
+class AuditoriaView(GestorRequiredMixin, ListView):
+    """Aba Auditoria do Painel de Gestão (RNF05): quem acessou dados de alunos e quem usou a videochamada.
+
+    Só leitura. Filtros por pessoa, aluno e período; exporta o resultado filtrado em CSV.
+    """
+
+    template_name = 'usuarios/auditoria.html'
+    paginate_by = 30
+    ABAS = {'acessos': 'Acessos a dados de alunos', 'videochamadas': 'Videochamadas'}
+
+    def get_aba(self):
+        aba = self.request.GET.get('aba', 'acessos')
+        return aba if aba in self.ABAS else 'acessos'
+
+    def get_queryset(self):
+        from apps.acompanhamento.models import LogAcesso
+        from apps.salas.models import ParticipacaoVideochamada
+
+        g = self.request.GET
+        if self.get_aba() == 'videochamadas':
+            qs = ParticipacaoVideochamada.objects.select_related('user', 'sala__aluno__user')
+            campo_data, campo_aluno = 'acionada_em', 'sala__aluno__user__name'
+        else:
+            qs = LogAcesso.objects.select_related('user', 'aluno__user')
+            campo_data, campo_aluno = 'ocorrido_em', 'aluno__user__name'
+        if g.get('pessoa'):
+            qs = qs.filter(user__name__icontains=g['pessoa'].strip())
+        if g.get('aluno'):
+            qs = qs.filter(**{f'{campo_aluno}__icontains': g['aluno'].strip()})
+        for chave, operador in (('de', 'gte'), ('ate', 'lte')):
+            data = parse_date(g.get(chave, '') or '')
+            if data:
+                qs = qs.filter(**{f'{campo_data}__date__{operador}': data})
+        return qs
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get('formato') == 'csv':
+            return self.exportar_csv()
+        return super().get(request, *args, **kwargs)
+
+    def exportar_csv(self):
+        resposta = HttpResponse(content_type='text/csv; charset=utf-8')
+        resposta['Content-Disposition'] = f'attachment; filename="auditoria-{self.get_aba()}.csv"'
+        resposta.write('\ufeff')  # BOM: o Excel abre os acentos certos
+        escritor = csv.writer(resposta, delimiter=';')
+        local = timezone.localtime
+        if self.get_aba() == 'videochamadas':
+            escritor.writerow(['Pessoa', 'Aluno da sala', 'Forma', 'Abriu', 'Entrada confirmada', 'Saída confirmada'])
+            for p in self.get_queryset():
+                escritor.writerow([p.user.name, p.sala.aluno.user.name, p.get_forma_display(),
+                                   local(p.acionada_em).strftime('%d/%m/%Y %H:%M'),
+                                   p.entrou_em and local(p.entrou_em).strftime('%d/%m/%Y %H:%M'),
+                                   p.saiu_em and local(p.saiu_em).strftime('%d/%m/%Y %H:%M')])
+        else:
+            escritor.writerow(['Quando', 'Pessoa', 'Aluno', 'Ação'])
+            for log in self.get_queryset():
+                escritor.writerow([local(log.ocorrido_em).strftime('%d/%m/%Y %H:%M'), log.user.name,
+                                   log.aluno.user.name, log.acao])
+        return resposta
+
+    def get_context_data(self, **kwargs):
+        filtros = self.request.GET.copy()
+        filtros.pop('page', None)
+        kwargs.update(aba=self.get_aba(), abas=self.ABAS, filtros=filtros.urlencode(), g=self.request.GET)
+        return super().get_context_data(**kwargs)

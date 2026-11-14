@@ -1,10 +1,11 @@
 from collections import Counter
+from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
-from django.db.models import Count, Exists, Max, OuterRef, Q
+from django.db.models import Count, Exists, F, Max, OuterRef, Q, Subquery
 from django.db.models.functions import TruncWeek
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -18,31 +19,78 @@ from apps.usuarios.mixins import AlunoRequiredMixin, ProfissionalRequiredMixin
 from apps.usuarios.models import Aluno
 
 from .forms import AnotacaoForm, ConclusaoForm, DistribuicaoAtividadeForm
-from .models import Anotacao, Atribuicao, RegistroEvolucao
+from .models import Anotacao, Atribuicao, PedidoAjuda, RegistroEvolucao
+
+
+ATRIBUICAO_VALIDA = [Atribuicao.Status.PENDENTE, Atribuicao.Status.EM_ANDAMENTO, Atribuicao.Status.CONCLUIDA]
 
 
 def atividades_do_aluno(aluno):
-    # Profissional revogado ou desativado deixa de entregar atividades aos alunos dele.
-    # Da sala, só chegam as atividades exclusivas deste aluno já publicadas (as dos membros passam pelo dono).
+    """Atividades que o aluno pode abrir, fazer e refazer.
+
+    Da biblioteca do profissional, só as que foram distribuídas a ESTE aluno (RF07); da sala, as exclusivas
+    dele já publicadas pelo dono. Profissional revogado ou desativado deixa de entregar atividades.
+    """
+    distribuidas = Atribuicao.objects.filter(aluno=aluno, status__in=ATRIBUICAO_VALIDA).values('atividade')
     return Atividade.objects.filter(
-        Q(aluno__isnull=True) | Q(aluno=aluno),
+        Q(aluno=aluno) | Q(aluno__isnull=True, pk__in=distribuidas),
         profissional_id=aluno.profissional_id, publicacao=Atividade.Publicacao.PUBLICADA,
         profissional__is_approved=True, profissional__user__is_active=True,
     )
 
 
+def atividades_pendentes(aluno):
+    """Atividades em aberto do aluno: distribuídas, não arquivadas e ainda não concluídas, com o prazo.
+    É a mesma consulta da lista, do painel e do contador do menu, para os números sempre baterem."""
+    concluidas = RegistroEvolucao.objects.filter(
+        aluno=aluno, status=RegistroEvolucao.Status.CONCLUIDA,
+    ).values('atividade')
+    prazo = Atribuicao.objects.filter(aluno=aluno, atividade=OuterRef('pk')).values('prazo')[:1]
+    return (atividades_do_aluno(aluno).filter(arquivada=False).exclude(pk__in=concluidas)
+            .annotate(prazo=Subquery(prazo))
+            .order_by(F('prazo').asc(nulls_last=True), 'created_at'))
+
+
+class PainelAlunoView(AlunoRequiredMixin, TemplateView):
+    """Início do aluno: alerta das atividades em aberto, números simples, próximos prazos e próxima chamada.
+
+    Só números do próprio aluno, sem comparação com colegas (baixa pressão, RNF01)."""
+
+    template_name = 'acompanhamento/painel_aluno.html'
+
+    def get_context_data(self, **kwargs):
+        from apps.salas.models import Sala  # import local: salas depende de acompanhamento
+
+        aluno = self.request.user.aluno
+        hoje = timezone.localdate()
+        pendentes = list(atividades_pendentes(aluno))
+        concluidas = RegistroEvolucao.objects.filter(aluno=aluno, status=RegistroEvolucao.Status.CONCLUIDA)
+        sala = Sala.objects.filter(aluno=aluno).select_related('aluno', 'dono__user').first()
+        kwargs.update(
+            hoje=hoje,
+            pendentes=pendentes,
+            atrasadas=[a for a in pendentes if a.prazo and a.prazo < hoje],
+            vencem_logo=[a for a in pendentes if a.prazo and hoje <= a.prazo <= hoje + timedelta(days=3)],
+            proximas=pendentes[:3],
+            total_concluidas=concluidas.count(),
+            concluidas_semana=concluidas.filter(data_realizacao__date__gte=hoje - timedelta(days=6)).count(),
+            sala=sala if sala and sala.ativa() and sala.chamada_vigente() else None,
+        )
+        return super().get_context_data(**kwargs)
+
+
 class AtividadesAlunoView(AlunoRequiredMixin, ListView):
-    """Atividades do profissional do aluno que ele ainda não concluiu."""
+    """Atividades distribuídas ao aluno que ele ainda não concluiu, com o prazo; arquivada sai da lista."""
 
     template_name = 'acompanhamento/atividades_aluno.html'
     context_object_name = 'atividades'
 
     def get_queryset(self):
-        aluno = self.request.user.aluno
-        concluidas = RegistroEvolucao.objects.filter(
-            aluno=aluno, status=RegistroEvolucao.Status.CONCLUIDA,
-        ).values('atividade')
-        return atividades_do_aluno(aluno).exclude(pk__in=concluidas).order_by('created_at')
+        return atividades_pendentes(self.request.user.aluno)
+
+    def get_context_data(self, **kwargs):
+        kwargs['hoje'] = timezone.localdate()
+        return super().get_context_data(**kwargs)
 
 
 def material_aberto(request, atividade):
@@ -67,6 +115,8 @@ class ConfirmarConclusaoView(AlunoRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         kwargs.setdefault('form', ConclusaoForm())
         kwargs['aberto'] = material_aberto(self.request, self.object)
+        kwargs['pedido_ajuda'] = PedidoAjuda.objects.filter(
+            aluno=self.request.user.aluno, atividade=self.object, respondido_em__isnull=True).first()
         return super().get_context_data(**kwargs)
 
 
@@ -115,6 +165,29 @@ class ConcluirAtividadeView(AlunoRequiredMixin, View):
         return redirect('aluno_atividades')
 
 
+class PedirAjudaView(AlunoRequiredMixin, View):
+    """Botão "Preciso de ajuda": avisa o profissional responsável (na tela e por e-mail). Um pedido aberto por vez."""
+
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        from apps.usuarios.services.email import enviar_aviso_pedido_ajuda
+
+        aluno = request.user.aluno
+        atividade = get_object_or_404(atividades_do_aluno(aluno), pk=pk)
+        _, criado = PedidoAjuda.objects.get_or_create(
+            aluno=aluno, atividade=atividade, respondido_em__isnull=True,
+            defaults={'mensagem': request.POST.get('mensagem', '').strip()[:1000]},
+        )
+        if criado:
+            profissional = aluno.profissional
+            transaction.on_commit(lambda: enviar_aviso_pedido_ajuda(profissional), robust=True)
+            messages.success(request, 'Pronto! Avisamos o seu profissional que você precisa de ajuda.')
+        else:
+            messages.info(request, 'Você já pediu ajuda nesta atividade. O seu profissional já foi avisado.')
+        return redirect('confirmar_conclusao', pk=atividade.pk)
+
+
 class HistoricoAlunoView(AlunoRequiredMixin, ListView):
     """Atividades que o aluno já concluiu, com o total de tentativas e a data da última."""
 
@@ -150,6 +223,20 @@ class RefazerAtividadeView(AlunoRequiredMixin, View):
         return redirect('confirmar_conclusao', pk=atividade.pk)
 
 
+class AjudaRespondidaView(ProfissionalRequiredMixin, View):
+    """O profissional responsável marca o pedido de ajuda como respondido (depois de falar com o aluno)."""
+
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        pedido = get_object_or_404(PedidoAjuda, pk=pk, respondido_em__isnull=True,
+                                   aluno__profissional=request.user.profissional)
+        pedido.respondido_em, pedido.respondido_por = timezone.now(), request.user
+        pedido.save(update_fields=['respondido_em', 'respondido_por'])
+        messages.success(request, 'Pedido de ajuda marcado como respondido.')
+        return redirect('alunos_profissional')
+
+
 class DistribuirAtividadeView(ProfissionalRequiredMixin, FormView):
     """Distribui uma atividade da biblioteca do profissional a um ou mais alunos vinculados."""
 
@@ -166,6 +253,8 @@ class DistribuirAtividadeView(ProfissionalRequiredMixin, FormView):
         return kwargs | {'profissional': profissional, 'initial': {'atividade': atividade}}
 
     def form_valid(self, form):
+        from apps.usuarios.services.email import enviar_aviso_atividade_enviada
+
         dados = form.cleaned_data
         profissional = self.request.user.profissional
         criadas = 0
@@ -177,6 +266,10 @@ class DistribuirAtividadeView(ProfissionalRequiredMixin, FormView):
                     defaults={'profissional': profissional, 'prazo': dados['prazo']},
                 )
                 criadas += criada
+                if criada:  # avisa o responsável só da distribuição nova
+                    transaction.on_commit(
+                        lambda aluno=aluno, prazo=dados['prazo']: enviar_aviso_atividade_enviada(aluno, prazo),
+                        robust=True)
         total = len(dados['alunos'])
         if criadas:
             messages.success(self.request, f'Atividade distribuída: {criadas} de {total} aluno(s).')

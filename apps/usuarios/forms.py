@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm, BaseUserCreationForm
@@ -6,7 +8,13 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import Aluno, PreferenciaAcessibilidade, Profissional, User
+from .models import UFS, Aluno, PreferenciaAcessibilidade, Profissional, User
+from .services import limites
+
+
+# Número do registro: 1-2 dígitos da região, separador opcional, 3-7 dígitos e sufixo opcional
+# (cobre 06/123456 do CRP, 12345-TO do CREFITO, 2-12345 do CRFa e números só com dígitos).
+REGISTRO_RE = re.compile(r'^[0-9]{1,2}[/.-]?[0-9]{3,7}(-?[A-Z]{1,2})?$')
 
 
 class BootstrapMixin:
@@ -30,6 +38,8 @@ class LoginForm(BootstrapMixin, AuthenticationForm):
     error_messages = {
         'invalid_login': 'E-mail ou senha incorretos. Confira os dados e tente de novo.',
         'inactive': 'Esta conta está desativada. Fale com a administração da instituição para reativá-la.',
+        'bloqueado': 'Muitas tentativas erradas com este e-mail. Por segurança, espere 15 minutos e tente de '
+                     'novo, ou use "Esqueci minha senha".',
     }
 
     def __init__(self, *args, **kwargs):
@@ -39,9 +49,14 @@ class LoginForm(BootstrapMixin, AuthenticationForm):
         self.fields['password'].label = 'Senha'
 
     def clean(self):
+        email = self.cleaned_data.get('username')
+        # RNF04: depois de 5 erros seguidos, nem confere a senha (vale também para a senha certa).
+        if email and limites.login_bloqueado(email):
+            raise forms.ValidationError(self.error_messages['bloqueado'], code='bloqueado')
         try:
-            return super().clean()
+            cleaned = super().clean()
         except forms.ValidationError:
+            limites.registrar_falha_login(email)
             # O ModelBackend recusa conta inativa como se a senha estivesse errada; aqui damos o motivo
             # real, mas só a quem acertou a senha (não revela se um e-mail existe).
             email, senha = self.cleaned_data.get('username'), self.cleaned_data.get('password')
@@ -49,6 +64,8 @@ class LoginForm(BootstrapMixin, AuthenticationForm):
             if usuario and senha and usuario.check_password(senha):
                 raise forms.ValidationError(self.error_messages['inactive'], code='inactive')
             raise
+        limites.limpar_falhas_login(email)
+        return cleaned
 
 
 class RecuperarSenhaForm(BootstrapMixin, forms.Form):
@@ -97,11 +114,17 @@ class CadastroForm(BootstrapMixin, BaseUserCreationForm):
 
     role = forms.ChoiceField(label='Perfil', choices=PERFIS, widget=forms.RadioSelect)
 
-    # Perfil profissional
-    especialidade = forms.CharField(label='Especialidade', max_length=100, required=False,
-                                    help_text='Ex.: psicologia, terapia ocupacional, pedagogia.')
-    registro_profissional = forms.CharField(label='Registro profissional (opcional)', max_length=50,
-                                            required=False)
+    # Perfil profissional: profissão e registro no conselho, conferidos pelo gestor antes da aprovação.
+    profissao = forms.ChoiceField(label='Profissão', required=False,
+                                  choices=[('', 'Escolha a sua profissão')] + Profissional.Profissao.choices)
+    uf_registro = forms.ChoiceField(label='Estado (UF) do registro', required=False,
+                                    choices=[('', 'Escolha o estado')] + UFS)
+    numero_registro = forms.CharField(
+        label='Número do registro no conselho', max_length=20, required=False,
+        help_text='Como aparece na sua carteira. Ex.: 06/123456 (CRP), 12345-TO (CREFITO), 2-12345 (CRFa).',
+    )
+    area_atuacao = forms.CharField(label='Área de atuação (opcional)', max_length=60, required=False,
+                                   help_text='Ex.: ABA, alfabetização, comunicação alternativa.')
 
     # Perfil aluno (o profissional responsável é vinculado depois, pelo próprio profissional aprovado)
     birth_date = forms.DateField(label='Data de nascimento', required=False,
@@ -147,10 +170,32 @@ class CadastroForm(BootstrapMixin, BaseUserCreationForm):
             raise forms.ValidationError('A data de nascimento precisa ser anterior a hoje.')
         return data
 
+    def clean_numero_registro(self):
+        numero = ''.join(self.cleaned_data.get('numero_registro', '').split()).upper()
+        if numero and not REGISTRO_RE.match(numero):
+            raise forms.ValidationError('Confira o número: use só números, com "/" ou "-" se a carteira tiver '
+                                        '(ex.: 06/123456 ou 12345-TO).')
+        return numero
+
+    def _campos_profissional(self, cleaned):
+        profissao = cleaned.get('profissao')
+        campos = ['profissao']
+        if profissao in Profissional.CONSELHOS:
+            campos += ['uf_registro', 'numero_registro']
+            ja_existe = Profissional.objects.filter(
+                profissao=profissao, uf_registro=cleaned.get('uf_registro'),
+                numero_registro=cleaned.get('numero_registro'),
+            ).exists()
+            if cleaned.get('numero_registro') and ja_existe:
+                self.add_error('numero_registro', 'Este registro já está cadastrado em outra conta.')
+        return campos
+
     def clean(self):
         cleaned = super().clean()
         role = cleaned.get('role')
-        obrigatorios = {User.Role.ALUNO: self.CAMPOS_ALUNO, User.Role.PROFISSIONAL: ['especialidade']}.get(role, [])
+        obrigatorios = self.CAMPOS_ALUNO if role == User.Role.ALUNO else []
+        if role == User.Role.PROFISSIONAL:
+            obrigatorios = self._campos_profissional(cleaned)
         for campo in obrigatorios:
             if not cleaned.get(campo) and campo not in self.errors:
                 self.add_error(campo, 'Preencha este campo.')
@@ -166,10 +211,16 @@ class CadastroForm(BootstrapMixin, BaseUserCreationForm):
         user.save()
         dados = self.cleaned_data
         if user.role == User.Role.PROFISSIONAL:
-            Profissional.objects.create(
-                user=user, especialidade=dados['especialidade'],
-                registro_profissional=dados['registro_profissional'] or None,
+            profissao = dados['profissao']
+            rotulo = Profissional.Profissao(profissao).label
+            profissional = Profissional(
+                user=user, profissao=profissao,
+                especialidade=f"{rotulo} · {dados['area_atuacao']}" if dados['area_atuacao'] else rotulo,
             )
+            if profissao in Profissional.CONSELHOS:
+                profissional.uf_registro, profissional.numero_registro = dados['uf_registro'], dados['numero_registro']
+                profissional.registro_profissional = profissional.registro_formatado
+            profissional.save()
         else:
             Aluno.objects.create(
                 user=user, consentimento_data=timezone.now(),

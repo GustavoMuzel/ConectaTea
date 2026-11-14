@@ -3,8 +3,11 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('', views.PainelAlunoView.as_view(), name='aluno_painel'),
     path('atividades/', views.AtividadesAlunoView.as_view(), name='aluno_atividades'),
     path('atividades/<int:pk>/confirmar/', views.ConfirmarConclusaoView.as_view(), name='confirmar_conclusao'),
+    path('atividades/<int:pk>/ajuda/', views.PedirAjudaView.as_view(), name='pedir_ajuda'),
+    path('ajuda/<int:pk>/respondido/', views.AjudaRespondidaView.as_view(), name='ajuda_respondida'),
     path('atividades/<int:pk>/concluir/', views.ConcluirAtividadeView.as_view(), name='concluir_atividade'),
     path('historico/', views.HistoricoAlunoView.as_view(), name='historico_aluno'),
     path('atividades/<int:pk>/refazer/', views.RefazerAtividadeView.as_view(), name='refazer_atividade'),

@@ -84,3 +84,47 @@ def enviar_codigo_recuperacao(para_email: str, codigo: str) -> bool:
         # Só em desenvolvimento e sem Brevo: mostra o código no terminal para dar para testar o fluxo.
         logger.info('Código de recuperação de senha para %s (DEBUG): %s', para_email, codigo)
     return enviado
+
+
+# Avisos ao responsável e ao profissional. Sem nomes nem conteúdo de atividades no e-mail: só o essencial e o
+# convite para entrar no sistema (menos dado de menor circulando por e-mail e menos risco de phishing).
+
+def _formatar(quando):
+    return timezone.localtime(quando).strftime('%d/%m/%Y às %Hh%M')
+
+
+def enviar_aviso_chamada_marcada(aluno, quando) -> bool:
+    html = format_html(
+        '<p>Olá.</p><p>O profissional que acompanha o aluno no ConectaTEA marcou uma videochamada para '
+        '<strong>{}</strong>.</p><p>Ela abre 15 minutos antes, em "Minha equipe". A chamada não é gravada.</p>',
+        _formatar(quando),
+    )
+    enviado = enviar_email(aluno.guardian_email, 'Videochamada marcada no ConectaTEA', html)
+    enviar_email(aluno.user.email, 'Videochamada marcada no ConectaTEA', html)
+    return enviado
+
+
+def enviar_aviso_atividade_enviada(aluno, prazo) -> bool:
+    html = format_html(
+        '<p>Olá.</p><p>O aluno recebeu uma nova atividade no ConectaTEA{}.</p>'
+        '<p>Ela aparece no Início e em "Minhas atividades".</p>',
+        format_html(', com prazo até <strong>{}</strong>', prazo.strftime('%d/%m/%Y')) if prazo else '',
+    )
+    return enviar_email(aluno.guardian_email, 'Nova atividade no ConectaTEA', html)
+
+
+def enviar_aviso_atividades_atrasadas(aluno, quantidade) -> bool:
+    html = format_html(
+        '<p>Olá.</p><p>O aluno tem <strong>{}</strong> atividade(s) no ConectaTEA que passaram do prazo. '
+        'Ele ainda pode fazer.</p><p>Se precisar, o botão "Preciso de ajuda" avisa o profissional.</p>',
+        quantidade,
+    )
+    return enviar_email(aluno.guardian_email, 'Atividades com prazo vencido no ConectaTEA', html)
+
+
+def enviar_aviso_pedido_ajuda(profissional) -> bool:
+    html = mark_safe(  # texto fixo, sem dado do usuário
+        '<p>Olá.</p><p>Um aluno pediu ajuda em uma atividade no ConectaTEA.</p>'
+        '<p>Veja o pedido em "Meus alunos".</p>'
+    )
+    return enviar_email(profissional.user.email, 'Pedido de ajuda no ConectaTEA', html)

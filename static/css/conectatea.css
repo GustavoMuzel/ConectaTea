@@ -97,15 +97,59 @@ h1, h2, h3, h4, h5, .h1, .h2, .h3, .h4, .h5 { font-weight: 700; letter-spacing: 
   font-weight: 700; text-decoration: none; }
 .marca:hover { color: var(--ct-primaria); }
 .marca-icone { width: 2.25rem; height: 2.25rem; flex: none; }
+/* Laço da conscientização do autismo (peças em tons suaves) e símbolo do infinito (só na página Sobre o TEA) */
+.laco, .infinito { display: block; overflow: visible; flex: none; }
+.laco-pequeno { width: 1.1rem; height: 1.65rem; }
+.reduce-stimuli .laco-pecas, .reduce-stimuli .infinito-traco { stroke: var(--ct-primaria-suave); }
+.high-contrast .laco-contorno { stroke: #fff; }
+.high-contrast .laco-pecas, .high-contrast .infinito-traco { stroke: #ff0; }
+/* Faixa no topo com as cores das peças do laço: fina e suave; some com "reduzir estímulos" e no alto contraste. */
+.topo { border-top: 4px solid transparent;
+  border-image: linear-gradient(90deg, #6a9bd1, #f0cf6b, #e48a8a, #8cc79a) 1; }
+.reduce-stimuli .topo, .high-contrast .topo { border-image: none; border-top-color: var(--ct-borda); }
+.selo-neurodiversidade { display: inline-flex; align-items: center; gap: .5rem; padding: .35rem .8rem;
+  border-radius: 999px; background: var(--ct-primaria-suave); color: var(--ct-primaria-escura); font-weight: 600; }
+.selo-neurodiversidade .laco { width: 1rem; height: 1.5rem; }
+.high-contrast .selo-neurodiversidade { background: #000; color: #fff; border: 2px solid #fff; }
+.documento figure .infinito { width: 5rem; height: 2.5rem; }
+.documento figure .laco { width: 2.5rem; height: 3.75rem; }
+.capa { max-width: 40rem; padding: 3rem 0 2rem; }
+.capa-laco { width: auto; height: 8rem; margin: 0 auto; }
 .menu-link { color: var(--ct-texto); text-decoration: none; font-weight: 600; padding: .5rem .75rem;
   border-radius: .5rem; border: 2px solid transparent; }
 .menu-link:hover { background: var(--ct-primaria-suave); color: var(--ct-primaria-escura); }
 .menu-link[aria-current="page"] { background: var(--ct-primaria-suave); color: var(--ct-primaria-escura);
   border-color: var(--ct-primaria); }
+.menu-abas { border-top: 1px solid var(--ct-borda); padding: .4rem 0; }
+.high-contrast .menu-abas { border-color: #fff; }
 .usuario-logado { display: inline-flex; flex-direction: column; line-height: 1.2; text-align: right; }
 .usuario-logado small { color: var(--ct-texto-suave); }
 .rodape { background: var(--ct-superficie); border-top: 1px solid var(--ct-borda); color: var(--ct-texto-suave); }
 .rodape a { font-weight: 600; }
+
+/* Abas (navegação entre seções de uma mesma área) */
+.abas { display: flex; flex-wrap: wrap; gap: .25rem; border-bottom: 2px solid var(--ct-borda); }
+.aba { padding: .6rem 1rem; font-weight: 600; color: var(--ct-texto); text-decoration: none;
+  border: 2px solid transparent; border-bottom: 0; border-radius: .5rem .5rem 0 0; margin-bottom: -2px; }
+.aba:hover { background: var(--ct-primaria-suave); }
+.aba[aria-current="page"] { background: var(--ct-superficie); border-color: var(--ct-borda);
+  border-bottom: 2px solid var(--ct-superficie); color: var(--ct-primaria-escura); }
+.high-contrast .abas { border-color: #fff; }
+.high-contrast .aba { color: #fff; }
+.high-contrast .aba[aria-current="page"] { background: #000; color: #ff0; border-color: #fff; border-bottom-color: #000; }
+
+/* Contador no menu e números do painel do aluno */
+.contador { display: inline-block; min-width: 1.6em; padding: 0 .45em; margin-left: .25rem; border-radius: 999px;
+  background: var(--ct-primaria); color: #fff; font-size: .85em; text-align: center; }
+.high-contrast .contador { background: #ff0; color: #000; }
+.numero { text-align: center; }
+.cartao-alerta { border-left: 6px solid #b7791f; }
+.high-contrast .cartao-alerta { border-left-color: #ff0; }
+.ajuda { border-top: 1px solid var(--ct-borda); padding-top: 1.25rem; }
+.numero-valor { font-size: 2.25rem; font-weight: 700; line-height: 1.1; margin: 0; }
+.numero-rotulo { margin: .25rem 0 0; color: var(--ct-texto-suave); }
+.numero-alerta { border-color: #b7791f; border-width: 2px; }
+.high-contrast .numero-alerta { border-color: #ff0; }
 
 /* Avisos */
 .alert { border-width: 1px 1px 1px 6px; border-radius: .5rem; font-weight: 500; }
@@ -134,6 +178,16 @@ h1, h2, h3, h4, h5, .h1, .h2, .h3, .h4, .h5 { font-weight: 700; letter-spacing: 
 .recurso-icone { width: 2.75rem; height: 2.75rem; border-radius: .5rem; background: var(--ct-primaria-suave);
   color: var(--ct-primaria); display: inline-flex; align-items: center; justify-content: center;
   margin-bottom: .75rem; }
+
+/* Itens que abrem e fecham (Mitos e verdades): sem animação, alvo de toque grande */
+.documento details { border: 1px solid var(--ct-borda); border-radius: .5rem; padding: .75rem 1rem; }
+.documento summary { cursor: pointer; min-height: 2rem; }
+.high-contrast .documento details { border: 2px solid #fff; }
+
+/* Videochamada embutida */
+.chamada-moldura { width: 100%; height: 70vh; min-height: 420px; border: 1px solid var(--ct-borda);
+  border-radius: .75rem; overflow: hidden; background: #1f2328; }
+.high-contrast .chamada-moldura { border: 2px solid #fff; }
 
 /* Documentos legais */
 .documento { max-width: 50rem; }

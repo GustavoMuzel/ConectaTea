@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Videochamada{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Videochamada da sala de {{ sala.aluno.user.name }}</h1>
+    <p class="text-body-secondary mb-0">A chamada não é gravada. O ConectaTEA registra só quando cada pessoa entra e sai.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ voltar }}">Sair e voltar</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-9">
+    <div id="aviso-chamada" class="alert alert-info" role="status">
+      <span class="alert-titulo">Antes de entrar</span>
+      Confira o seu nome, a câmera e o microfone. Depois clique em <strong>"Entrar na reunião"</strong>.
+    </div>
+    <div id="area-chamada" class="chamada-moldura" aria-label="Área da videochamada"></div>
+    <div id="falha-chamada" class="alert alert-warning d-none" role="alert">
+      <span class="alert-titulo">Não foi possível carregar a chamada aqui</span>
+      Use o botão abaixo para abrir a chamada em outra aba.
+      <div class="mt-2"><a class="btn btn-primary" href="{% url 'videochamada_nova_aba' sala.pk %}" target="_blank" rel="noopener">Abrir em outra aba</a></div>
+    </div>
+  </div>
+  <aside class="col-lg-3 d-grid gap-3 align-content-start" aria-label="Informações da chamada">
+    {% if sala.proxima_chamada %}
+      <section class="cartao">
+        <h2 class="h6">Chamada combinada</h2>
+        <p class="mb-1">{{ sala.proxima_chamada|date:"l, d/m \à\s H\hi" }}</p>
+        {% if sala.pauta_chamada %}<p class="small mb-0">{{ sala.pauta_chamada }}</p>{% endif %}
+      </section>
+    {% endif %}
+    <section class="cartao">
+      <h2 class="h6">Quem pode entrar</h2>
+      <ul class="list-unstyled small mb-0">
+        <li>{{ sala.aluno.user.name }} (aluno)</li>
+        <li>{{ sala.dono.user.name }} (responsável)</li>
+        {% for membro in equipe %}<li>{{ membro.profissional.user.name }}</li>{% endfor %}
+      </ul>
+    </section>
+    <section class="cartao small">
+      <h2 class="h6">Dicas</h2>
+      <ul class="mb-0 ps-3">
+        <li>Use fone de ouvido, se puder.</li>
+        <li>Pode desligar a câmera quando quiser.</li>
+        <li>Para sair, clique no botão vermelho.</li>
+      </ul>
+      <p class="mt-2 mb-0"><a href="{% url 'videochamada_nova_aba' sala.pk %}" target="_blank" rel="noopener">Abrir em outra aba</a></p>
+    </section>
+  </aside>
+</div>
+
+{{ dominio|json_script:"jitsi-dominio" }}
+{{ nome_sala|json_script:"jitsi-sala" }}
+{{ user.name|json_script:"jitsi-nome" }}
+<script>
+  (function () {
+    var urlEvento = '{% url "evento_videochamada" sala.pk participacao.pk %}';
+    var voltar = '{{ voltar|escapejs }}';
+    var csrf = '{{ csrf_token }}';
+    var dominio = JSON.parse(document.getElementById('jitsi-dominio').textContent);
+    var saiu = false;
+
+    function registrar(tipo) {
+      var dados = new FormData();
+      dados.append('tipo', tipo);
+      dados.append('csrfmiddlewaretoken', csrf);
+      // keepalive: o registro de saída chega mesmo se a página estiver fechando.
+      return fetch(urlEvento, {method: 'POST', body: dados, keepalive: true, credentials: 'same-origin'});
+    }
+
+    function falhou() {
+      document.getElementById('area-chamada').classList.add('d-none');
+      document.getElementById('aviso-chamada').classList.add('d-none');
+      document.getElementById('falha-chamada').classList.remove('d-none');
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://' + dominio + '/external_api.js';
+    script.onerror = falhou;
+    script.onload = function () {
+      if (typeof JitsiMeetExternalAPI === 'undefined') { falhou(); return; }
+      var api = new JitsiMeetExternalAPI(dominio, {
+        roomName: JSON.parse(document.getElementById('jitsi-sala').textContent),
+        parentNode: document.getElementById('area-chamada'),
+        width: '100%',
+        height: '100%',
+        lang: 'ptBR',
+        userInfo: {displayName: JSON.parse(document.getElementById('jitsi-nome').textContent)},
+        configOverwrite: {
+          prejoinConfig: {enabled: true},
+          disableDeepLinking: true,
+          disableReactions: true,
+          disableInviteFunctions: true,
+          enableClosePage: false,
+          // Baixa carga sensorial: só os botões essenciais e sem sons de notificação.
+          disabledSounds: ['PARTICIPANT_JOINED_SOUND', 'PARTICIPANT_LEFT_SOUND', 'REACTION_SOUND',
+                           'RAISE_HAND_SOUND', 'INCOMING_MSG_SOUND', 'TALK_WHILE_MUTED_SOUND'],
+          toolbarButtons: ['microphone', 'camera', 'desktop', 'tileview', 'fullscreen', 'settings', 'hangup']
+        }
+      });
+      api.addListener('videoConferenceJoined', function () {
+        registrar('entrou');
+        document.getElementById('aviso-chamada').classList.add('d-none');
+      });
+      api.addListener('videoConferenceLeft', function () {
+        saiu = true;
+        registrar('saiu').finally(function () { window.location.href = voltar; });
+      });
+      window.addEventListener('pagehide', function () { if (!saiu) { registrar('saiu'); } });
+    };
+    document.body.appendChild(script);
+  })();
+</script>
+{% endblock %}

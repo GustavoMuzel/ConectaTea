@@ -41,6 +41,10 @@ def _sem_rede_nos_unitarios(request, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _cache_limpo():
-    """O limite de pedidos do RF03 usa o cache: sem isto, um teste herdaria o bloqueio do anterior."""
+def _cache_limpo(request):
+    """Os limites de login e de pedidos de código usam o cache: sem isto, um teste herdaria o bloqueio do anterior.
+    O cache fica no banco (DatabaseCache), então só é limpo nos testes de integração; os unitários não tocam nele."""
+    if request.node.get_closest_marker('unit'):
+        return
+    request.getfixturevalue('db')
     cache.clear()

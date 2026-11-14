@@ -37,5 +37,7 @@
     </ul>
   </section>
 </div>
-<a href="{% if user.pk == aluno.user_id %}{% url 'historico_aluno' %}{% else %}{% url 'evolucao_aluno' aluno.pk %}{% endif %}" class="btn btn-link mt-4">Voltar</a>
+{% if user.pk != aluno.user_id %}{# o aluno já tem as abas do menu; o profissional volta para a evolução #}
+<a href="{% url 'evolucao_aluno' aluno.pk %}" class="btn btn-link mt-4">Voltar para a evolução</a>
+{% endif %}
 {% endblock %}

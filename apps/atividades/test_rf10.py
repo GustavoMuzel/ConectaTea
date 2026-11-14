@@ -76,12 +76,11 @@ def test_concluir_atualiza_a_atribuicao_para_concluida(client, cenario):
 
 
 @pytest.mark.django_db
-def test_concluir_sem_distribuicao_previa_cria_atribuicao_concluida(client, cenario):
+def test_sem_distribuicao_previa_o_aluno_nao_conclui(client, cenario):
     client.force_login(cenario['aluno'].user)
-    client.post(reverse('concluir_atividade', args=[cenario['atividade'].pk]), {'resposta': 'x'})
-    atribuicao = Atribuicao.objects.get()
-    assert (atribuicao.aluno, atribuicao.profissional) == (cenario['aluno'], cenario['prof'])
-    assert atribuicao.status == Atribuicao.Status.CONCLUIDA
+    resp = client.post(reverse('concluir_atividade', args=[cenario['atividade'].pk]), {'resposta': 'x'})
+    assert resp.status_code == 404
+    assert not Atribuicao.objects.exists() and not RegistroEvolucao.objects.exists()
 
 
 @pytest.mark.django_db

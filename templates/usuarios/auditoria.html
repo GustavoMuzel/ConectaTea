@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Auditoria{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Painel de Gestão</h1>
+{% include "partials/_abas_gestao.html" %}
+
+<p class="text-body-secondary">Registro de quem acessou dados de alunos e de quem usou a videochamada (LGPD e RNF05). Só leitura: nada aqui pode ser editado ou apagado.</p>
+
+<nav class="d-flex flex-wrap gap-2 mb-3" aria-label="Tipo de registro">
+  {% for chave, titulo in abas.items %}
+    <a class="btn {% if aba == chave %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?aba={{ chave }}"{% if aba == chave %} aria-current="page"{% endif %}>{{ titulo }}</a>
+  {% endfor %}
+</nav>
+
+<form method="get" class="cartao mb-4" aria-label="Filtros">
+  <input type="hidden" name="aba" value="{{ aba }}">
+  <div class="row g-3 align-items-end">
+    <div class="col-md-3"><label class="form-label fw-semibold" for="f-pessoa">Pessoa</label>
+      <input class="form-control" id="f-pessoa" name="pessoa" value="{{ g.pessoa }}" placeholder="Nome de quem fez"></div>
+    <div class="col-md-3"><label class="form-label fw-semibold" for="f-aluno">Aluno</label>
+      <input class="form-control" id="f-aluno" name="aluno" value="{{ g.aluno }}" placeholder="Nome do aluno"></div>
+    <div class="col-6 col-md-2"><label class="form-label fw-semibold" for="f-de">De</label>
+      <input class="form-control" type="date" id="f-de" name="de" value="{{ g.de }}"></div>
+    <div class="col-6 col-md-2"><label class="form-label fw-semibold" for="f-ate">Até</label>
+      <input class="form-control" type="date" id="f-ate" name="ate" value="{{ g.ate }}"></div>
+    <div class="col-md-2 d-grid gap-2">
+      <button class="btn btn-primary" type="submit">Filtrar</button>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-3 mt-3">
+    <a href="?aba={{ aba }}">Limpar filtros</a>
+    <a href="?{{ filtros }}&amp;formato=csv">Baixar em CSV (planilha)</a>
+  </div>
+</form>
+
+<div class="cartao">
+  <p class="small text-body-secondary">{{ paginator.count }} registro(s){% if aba == 'videochamadas' %}. "Abriu" é quando a pessoa acionou a chamada; entrada e saída só são confirmadas na chamada aberta dentro do ConectaTEA.{% endif %}</p>
+  <div class="table-responsive">
+    {% if aba == 'videochamadas' %}
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th scope="col">Pessoa</th><th scope="col">Sala de</th><th scope="col">Abriu</th><th scope="col">Entrou</th><th scope="col">Saiu</th><th scope="col">Forma</th></tr></thead>
+        <tbody>
+          {% for p in object_list %}
+            <tr><td>{{ p.user.name }}</td><td>{{ p.sala.aluno.user.name }}</td><td>{{ p.acionada_em|date:"d/m/Y H:i" }}</td>
+                <td>{{ p.entrou_em|date:"H:i"|default:"—" }}</td><td>{{ p.saiu_em|date:"H:i"|default:"—" }}</td><td>{{ p.get_forma_display }}</td></tr>
+          {% empty %}<tr><td colspan="6">Nenhum registro encontrado.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th scope="col">Quando</th><th scope="col">Pessoa</th><th scope="col">Aluno</th><th scope="col">Ação</th></tr></thead>
+        <tbody>
+          {% for log in object_list %}
+            <tr><td>{{ log.ocorrido_em|date:"d/m/Y H:i" }}</td><td>{{ log.user.name }}</td><td>{{ log.aluno.user.name }}</td><td>{{ log.acao }}</td></tr>
+          {% empty %}<tr><td colspan="4">Nenhum registro encontrado.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+  {% if is_paginated %}
+    <nav class="d-flex flex-wrap gap-2 align-items-center mt-3" aria-label="Páginas">
+      {% if page_obj.has_previous %}<a class="btn btn-outline-primary btn-sm" href="?{{ filtros }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
+      <span>Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a class="btn btn-outline-primary btn-sm" href="?{{ filtros }}&amp;page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}

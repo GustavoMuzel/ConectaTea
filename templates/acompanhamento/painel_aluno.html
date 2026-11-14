@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Início{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Início</h1>
+
+{# Alerta principal: uma frase só, literal, com o que fazer agora. #}
+{% if atrasadas %}
+  <div class="alert alert-warning" role="alert">
+    <span class="alert-titulo">{{ atrasadas|length }} atividade{{ atrasadas|length|pluralize }} passou{{ atrasadas|length|pluralize:"ram" }} do prazo</span>
+    Você ainda pode fazer. Comece por {{ atrasadas.0.title }}.
+    <a class="d-block mt-2 fw-semibold" href="{% url 'confirmar_conclusao' atrasadas.0.pk %}">Fazer agora</a>
+  </div>
+{% elif pendentes %}
+  <div class="alert alert-info" role="status">
+    <span class="alert-titulo">Você tem {{ pendentes|length }} atividade{{ pendentes|length|pluralize }} para fazer</span>
+    {% if vencem_logo %}O prazo de {{ vencem_logo.0.title }} é {% if vencem_logo.0.prazo == hoje %}hoje{% else %}{{ vencem_logo.0.prazo|date:"d/m" }}{% endif %}.{% else %}Faça no seu tempo.{% endif %}
+  </div>
+{% else %}
+  <div class="alert alert-success" role="status">
+    <span class="alert-titulo">Tudo em dia!</span>
+    Você não tem atividades para fazer agora.
+  </div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="cartao numero h-100"><p class="numero-valor">{{ pendentes|length }}</p><p class="numero-rotulo">Para fazer</p></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="cartao numero h-100{% if atrasadas %} numero-alerta{% endif %}"><p class="numero-valor">{{ atrasadas|length }}</p><p class="numero-rotulo">Passaram do prazo</p></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="cartao numero h-100"><p class="numero-valor">{{ concluidas_semana }}</p><p class="numero-rotulo">Feitas nos últimos 7 dias</p></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="cartao numero h-100"><p class="numero-valor">{{ total_concluidas }}</p><p class="numero-rotulo">Feitas no total</p></div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <section class="col-lg-7" aria-labelledby="t-proximas">
+    <div class="cartao h-100">
+      <h2 id="t-proximas" class="h5 mb-3">Próximas atividades</h2>
+      <ul class="list-unstyled d-grid gap-2 mb-3">
+        {% for atividade in proximas %}
+          <li class="d-flex flex-wrap align-items-center justify-content-between gap-2 border rounded p-3">
+            <span>
+              <span class="fw-semibold d-block">{{ atividade.title }}</span>
+              <span class="small{% if atividade.prazo and atividade.prazo < hoje %} text-danger fw-semibold{% else %} text-body-secondary{% endif %}">
+                {% if atividade.prazo %}Prazo: {{ atividade.prazo|date:"d/m/Y" }}{% if atividade.prazo < hoje %} (passou){% elif atividade.prazo == hoje %} (hoje){% endif %}{% else %}Sem prazo{% endif %}
+              </span>
+            </span>
+            <a class="btn btn-primary" href="{% url 'confirmar_conclusao' atividade.pk %}">Fazer<span class="visually-hidden"> {{ atividade.title }}</span></a>
+          </li>
+        {% empty %}
+          <li>Nenhuma atividade agora.</li>
+        {% endfor %}
+      </ul>
+      {% if pendentes|length > 3 %}<a href="{% url 'aluno_atividades' %}">Ver todas as {{ pendentes|length }} atividades</a>{% endif %}
+    </div>
+  </section>
+  <section class="col-lg-5" aria-labelledby="t-chamada">
+    <div class="cartao h-100">
+      <h2 id="t-chamada" class="h5 mb-3">Videochamada</h2>
+      {% if sala %}
+        <p class="mb-1"><strong>{{ sala.proxima_chamada|date:"l, d/m" }}</strong>, às <strong>{{ sala.proxima_chamada|date:"H\hi" }}</strong></p>
+        {% if sala.pauta_chamada %}<p class="small mb-3">{{ sala.pauta_chamada }}</p>{% endif %}
+        {% include "salas/_resposta_chamada.html" with voltar="inicio" %}
+        {% if sala.chamada_aberta_para_aluno %}
+          <a class="btn btn-primary w-100" href="{% url 'videochamada' sala.pk %}">Entrar na videochamada</a>
+        {% else %}
+          <p class="small text-body-secondary mb-0">O botão para entrar aparece 15 minutos antes.</p>
+        {% endif %}
+      {% else %}
+        <p class="mb-0">Nenhuma videochamada marcada. O seu profissional avisa aqui o dia e a hora.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

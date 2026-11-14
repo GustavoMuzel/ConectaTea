@@ -108,6 +108,11 @@ O front-end é renderizado no servidor (SSR) utilizando os templates nativos do 
 
    Depois disso, a aplicação responde em `http://localhost:8000/`.
 
+## Deploy
+
+A aplicação vai ao ar no **Render**, com o banco no **Neon** (PostgreSQL). O passo a passo está em
+[docs/deploy.md](docs/deploy.md).
+
 ## Testes
 
 Os testes ficam separados em dois grupos, pelos marcadores do pytest registrados no `pytest.ini`:

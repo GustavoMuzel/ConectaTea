@@ -48,7 +48,8 @@ def test_senha_vazia_e_recusada():
 @pytest.fixture
 def sala():
     aluno_user = User(id=1, email='aluno@ex.com', name='Aluno', role=User.Role.ALUNO)
-    dono = Profissional(id=10, user=User(id=2, email='dono@ex.com', name='Dono', role=User.Role.PROFISSIONAL))
+    dono = Profissional(id=10, is_approved=True,
+                        user=User(id=2, email='dono@ex.com', name='Dono', role=User.Role.PROFISSIONAL))
     aluno = Aluno(id=5, user=aluno_user, profissional_id=10)
     return Sala(aluno=aluno, dono=dono)
 
@@ -67,10 +68,40 @@ def test_sala_fica_dormente_quando_o_aluno_muda_de_profissional(sala):
     assert sala.participa(User(id=3)) is False
 
 
-def test_o_aluno_continua_na_propria_sala_mesmo_com_a_troca(sala):
+def test_sala_sem_vinculo_fica_parada_ate_para_o_aluno(sala):
+    # Sem profissional responsável não há com quem fazer a chamada; ao aceitar um novo vínculo, a sala volta.
     sala.aluno.profissional_id = None
-    assert sala.participa(User(id=1)) is True
+    assert sala.participa(User(id=1)) is False
+
+
+def test_revogar_a_aprovacao_do_dono_fecha_a_sala_para_todos(sala):
+    # Caso do parecer: sem aprovação, o dono perde o painel E a videochamada.
+    sala.dono.is_approved = False
+    assert sala.participa(User(id=2)) is False
+    assert sala.participa(User(id=1)) is False
+
+
+def test_dono_com_conta_desativada_nao_participa(sala):
+    sala.dono.user.is_active = False
+    assert sala.participa(User(id=2)) is False
+
+
+def test_usuario_desativado_nao_participa(sala):
+    assert sala.participa(User(id=1, is_active=False)) is False
 
 
 def test_sala_aparece_pelo_nome_do_aluno(sala):
     assert str(sala) == 'Sala de Aluno'
+
+
+def test_janela_da_videochamada_para_o_aluno(sala):
+    from datetime import datetime, timedelta, timezone as tz
+    marcada = datetime(2026, 11, 20, 15, 0, tzinfo=tz.utc)
+    sala.proxima_chamada = marcada
+    assert not sala.chamada_aberta_para_aluno(marcada - timedelta(minutes=16))
+    assert sala.chamada_aberta_para_aluno(marcada - timedelta(minutes=15))
+    assert sala.chamada_aberta_para_aluno(marcada + timedelta(hours=2))
+    assert not sala.chamada_aberta_para_aluno(marcada + timedelta(hours=2, seconds=1))
+    assert sala.chamada_vigente(marcada - timedelta(days=3)) and not sala.chamada_vigente(marcada + timedelta(hours=3))
+    sala.proxima_chamada = None
+    assert not sala.chamada_aberta_para_aluno() and sala.chamada_abre_em is None

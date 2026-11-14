@@ -5,6 +5,25 @@
   <h1 class="h3 mb-0">Meus alunos</h1>
   <a class="btn btn-primary" href="{% url 'vincular_alunos' %}">Vincular alunos</a>
 </div>
+{% if pedidos_ajuda %}
+  <section class="cartao mb-4 cartao-alerta" aria-labelledby="t-pedidos-ajuda">
+    <h2 id="t-pedidos-ajuda" class="h5 mb-3">Pedidos de ajuda ({{ pedidos_ajuda|length }})</h2>
+    <ul class="list-unstyled d-grid gap-2 mb-0">
+      {% for pedido in pedidos_ajuda %}
+        <li class="d-flex flex-wrap align-items-center justify-content-between gap-2 border rounded p-3">
+          <span>
+            <span class="fw-semibold">{{ pedido.aluno.user.name }}</span> · {{ pedido.atividade.title }}
+            <span class="d-block small text-body-secondary">{{ pedido.criado_em|date:"d/m \à\s H\hi" }}{% if pedido.mensagem %} · "{{ pedido.mensagem }}"{% endif %}</span>
+          </span>
+          <form method="post" action="{% url 'ajuda_respondida' pedido.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-primary btn-sm">Marcar como respondido<span class="visually-hidden"> o pedido de {{ pedido.aluno.user.name }}</span></button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
 <ul class="list-unstyled d-grid gap-3 mb-4">
   {% for aluno in alunos %}
     <li class="cartao">
