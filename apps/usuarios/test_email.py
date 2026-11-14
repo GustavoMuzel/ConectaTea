@@ -7,6 +7,8 @@ import requests
 from .models import Aluno, Profissional, User
 from .services.email import BREVO_URL, enviar_boas_vindas, enviar_notificacao_aluno_criado
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def user(db):

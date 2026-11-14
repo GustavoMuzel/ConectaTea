@@ -7,6 +7,8 @@ from django.utils import timezone
 
 from .models import Aluno, Profissional, User
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 ALUNO = {'birth_date': '2011-05-01', 'guardian_name': 'Resp', 'guardian_phone': '11999999999',
          'guardian_email': 'resp@ex.com', 'consentimento_responsavel': 'on'}

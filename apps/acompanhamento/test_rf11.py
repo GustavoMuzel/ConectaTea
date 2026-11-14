@@ -8,6 +8,8 @@ from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import Anotacao
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 PRIVADA, COMPARTILHADA = Anotacao.Visibilidade.PRIVADA, Anotacao.Visibilidade.COMPARTILHADA
 

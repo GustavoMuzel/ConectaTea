@@ -6,6 +6,8 @@ from rest_framework.test import APIClient
 from .models import Aluno, Profissional, User
 from .serializers import UserSerializer
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'senha-forte-123'
 
 

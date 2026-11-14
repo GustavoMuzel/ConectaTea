@@ -1,37 +1,129 @@
 name: CI
 
+# Roda a cada Pull Request aberto ou atualizado para a main e, depois do merge, de novo na main.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
+
+# Permissão mínima: o workflow só lê o código.
+permissions:
+  contents: read
+
+# Um commit novo no mesmo PR cancela a execução antiga, que já ficou desatualizada.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
-  SECRET_KEY: 'ci-dummy-key'
-  DEBUG: 'True'
-  BREVO_API_KEY: 'dummy-key'
+  PYTHON_VERSION: '3.13'  # a mesma versão do README
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
 
+# Três jobs independentes, em paralelo: cada um aparece como um check próprio no PR.
 jobs:
-  test:
+  testes-unitarios:
+    name: Testes unitários
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: Baixar o código
+        uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - name: Instalar o Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
 
-      - name: Install dependencies
+      - name: Instalar as dependências
         run: pip install -r requirements.txt
 
-      - name: Lint (flake8)
-        run: flake8
+      - name: Gerar uma SECRET_KEY descartável
+        run: |
+          chave=$(python -c 'import secrets; print(secrets.token_urlsafe(50))')
+          echo "::add-mask::$chave"
+          echo "SECRET_KEY=$chave" >> "$GITHUB_ENV"
 
-      - name: Django check
+      # Sem banco e sem rede: o pytest-django bloqueia o banco e o conftest.py bloqueia conexões.
+      - name: Rodar os testes unitários
+        run: pytest -m unit -v
+
+  testes-integracao:
+    name: Testes de integração
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Banco de teste isolado: um PostgreSQL 16 (o banco oficial do projeto) que existe só durante este job.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: conectatea
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust  # contêiner descartável e sem acesso externo: dispensa senha
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DB_ENGINE: postgresql
+      DB_NAME: conectatea
+      DB_USER: postgres
+      DB_HOST: localhost
+      DB_PORT: '5432'
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+
+      - name: Instalar o Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar as dependências
+        run: pip install -r requirements.txt
+
+      - name: Gerar uma SECRET_KEY descartável
+        run: |
+          chave=$(python -c 'import secrets; print(secrets.token_urlsafe(50))')
+          echo "::add-mask::$chave"
+          echo "SECRET_KEY=$chave" >> "$GITHUB_ENV"
+
+      - name: Verificar a configuração do Django
         run: python manage.py check
 
-      - name: Check for missing migrations
+      - name: Verificar se falta alguma migração
         run: python manage.py makemigrations --check --dry-run
 
-      - name: Run tests
-        run: pytest
+      # O pytest-django cria o banco test_conectatea, roda as migrações e o descarta no fim.
+      - name: Rodar os testes de integração
+        run: pytest -m integration -v
+
+  linter:
+    name: Linter
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+
+      - name: Instalar o Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      # Só o flake8 e os plugins dele, nas versões fixadas no requirements.txt: o job fica rápido.
+      - name: Instalar o flake8
+        run: pip install $(grep -E '^(flake8|pycodestyle|pyflakes|mccabe)==' requirements.txt)
+
+      # As regras ficam no arquivo .flake8, versionado no repositório.
+      - name: Rodar o flake8
+        run: flake8

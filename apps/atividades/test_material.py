@@ -10,6 +10,8 @@ from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import Atividade
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 PDF = b'%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF'
 

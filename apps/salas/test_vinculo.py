@@ -6,6 +6,8 @@ from apps.acompanhamento.models import Anotacao, LogAcesso
 
 from .models import Sala, SolicitacaoVinculo
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.django_db
 def test_lista_mostra_so_alunos_ativos_sem_vinculo(client, criar_prof, criar_aluno):

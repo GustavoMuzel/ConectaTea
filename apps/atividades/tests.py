@@ -4,6 +4,8 @@ from apps.usuarios.models import Profissional, User
 
 from .models import Atividade
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.django_db
 def test_atividade_pertence_ao_profissional_e_cascateia():

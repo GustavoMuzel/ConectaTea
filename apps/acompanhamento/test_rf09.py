@@ -10,6 +10,8 @@ from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import Atribuicao, RegistroEvolucao
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 HISTORICO = reverse('historico_aluno')
 CONCLUIDA, EM_ANDAMENTO = RegistroEvolucao.Status.CONCLUIDA, RegistroEvolucao.Status.EM_ANDAMENTO

@@ -8,6 +8,8 @@ from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import RegistroEvolucao
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 LISTA = reverse('aluno_atividades')
 
