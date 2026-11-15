@@ -1,0 +1,3 @@
+# Ferramentas só do teste de desempenho (não vão para o servidor). Veja docs/desempenho.md.
+locust==2.47.0
+playwright==1.65.2

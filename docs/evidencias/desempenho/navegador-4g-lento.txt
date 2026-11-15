@@ -1,0 +1,19 @@
+Rede: 4g-lento  |  meta do RNF03: 2000 ms
+Com --cdn-local o navegador não usa cache: as visitas seguintes também baixam tudo de novo.
+
+perfil       página                            1ª visita  seguintes  meta
+visitante    /                                     520ms      830ms  ok
+visitante    /entrar/                              825ms      832ms  ok
+visitante    /sobre-o-tea/                         825ms      831ms  ok
+pedro        /aluno/                               512ms      827ms  ok
+pedro        /aluno/atividades/                    814ms      826ms  ok
+pedro        /aluno/historico/                     810ms      821ms  ok
+pedro        /salas/minha-equipe/                 1177ms      831ms  ok
+mariana      /painel/                              858ms      855ms  ok
+mariana      /painel/alunos/                       509ms      808ms  ok
+mariana      /salas/                               828ms      823ms  ok
+mariana      /aluno/dashboard-profissional/       1405ms     1049ms  ok
+coordenacao  /painel-gestao/                      1394ms     1064ms  ok
+coordenacao  /painel-gestao/auditoria/             875ms      830ms  ok
+
+Pior caso: 1405 ms (dentro da meta de 2 s).

@@ -130,6 +130,10 @@ pytest                  # os dois grupos
   URLs, views, formulários e banco. O pytest-django cria um banco de teste separado e o apaga no fim.
 - O `conftest.py` também confere a separação: teste sem marcador, com os dois marcadores, ou unitário que pede o
   banco, interrompe a execução com erro.
+- **Desempenho (RNF03)**: o teste `apps/acompanhamento/test_desempenho.py` roda junto com os de integração e
+  confere que nenhuma tela aumenta o número de consultas ao banco quando os dados crescem. O teste de carga
+  (Locust) e o de carregamento no navegador (Playwright) ficam em `desempenho/`; método e resultados em
+  [docs/desempenho.md](docs/desempenho.md).
 
 ## Qualidade de código
 
