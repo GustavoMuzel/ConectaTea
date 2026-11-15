@@ -134,7 +134,12 @@ class CadastroForm(BootstrapMixin, BaseUserCreationForm):
     birth_date = forms.DateField(label='Data de nascimento', required=False,
                                  widget=forms.DateInput(attrs={'type': 'date'}))
     guardian_name = forms.CharField(label='Nome do responsável', max_length=150, required=False)
-    guardian_phone = forms.CharField(label='Telefone do responsável', max_length=20, required=False)
+    guardian_phone = forms.CharField(
+        label='Celular do responsável', max_length=20, required=False,
+        help_text='11 números, com o DDD. Ex.: (11) 98765-4321.',
+        widget=forms.TextInput(attrs={'inputmode': 'numeric', 'autocomplete': 'tel-national',
+                                      'placeholder': '(11) 98765-4321'}),
+    )
     guardian_email = forms.EmailField(label='E-mail do responsável', required=False)
     # Grava o timestamp em Aluno.consentimento_data; só barra o cadastro sem a marcação (LGPD, dados de menor).
     consentimento_responsavel = forms.BooleanField(required=False)
@@ -181,6 +186,26 @@ class CadastroForm(BootstrapMixin, BaseUserCreationForm):
                                         '(ex.: 06/123456 ou 12345-TO).')
         return numero
 
+    def _conferir_celular(self, cleaned):
+        """Celular do responsável com DDD: exatamente 11 números. Grava no formato (11) 98765-4321."""
+        digitado = (cleaned.get('guardian_phone') or '').strip()
+        if not digitado:
+            return  # campo vazio: o aviso "Preencha este campo" vem da lista de obrigatórios
+        if re.search(r'[^\d\s()+.-]', digitado):
+            self.add_error('guardian_phone', 'Use só números. Ex.: (11) 98765-4321.')
+            return
+        digitos = re.sub(r'\D', '', digitado)
+        if len(digitos) == 13 and digitos.startswith('55'):
+            digitos = digitos[2:]  # aceita quem digitou o +55 do Brasil
+        if len(digitos) != 11:
+            self.add_error('guardian_phone', 'O celular precisa ter 11 números, contando o DDD. '
+                                             f'Você digitou {len(digitos)}.')
+        elif digitos[0] == '0' or digitos[2] != '9':
+            self.add_error('guardian_phone', 'Confira o número: o DDD não começa com 0, e o celular começa '
+                                             'com 9 logo depois do DDD.')
+        else:
+            cleaned['guardian_phone'] = f'({digitos[:2]}) {digitos[2:7]}-{digitos[7:]}'
+
     def _campos_profissional(self, cleaned):
         profissao = cleaned.get('profissao')
         campos = ['profissao']
@@ -203,8 +228,10 @@ class CadastroForm(BootstrapMixin, BaseUserCreationForm):
         for campo in obrigatorios:
             if not cleaned.get(campo) and campo not in self.errors:
                 self.add_error(campo, 'Preencha este campo.')
-        if role == User.Role.ALUNO and not cleaned.get('consentimento_responsavel'):
-            self.add_error('consentimento_responsavel', 'Marque esta caixa para continuar.')
+        if role == User.Role.ALUNO:
+            self._conferir_celular(cleaned)  # só no perfil aluno: o bloco fica escondido para profissional
+            if not cleaned.get('consentimento_responsavel'):
+                self.add_error('consentimento_responsavel', 'Marque esta caixa para continuar.')
         return cleaned
 
     @transaction.atomic
