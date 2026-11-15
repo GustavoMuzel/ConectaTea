@@ -4,7 +4,7 @@
 <h1 class="h3 mb-3">Painel de Gestão</h1>
 {% include "partials/_abas_gestao.html" %}
 
-<p class="text-body-secondary">Registro de quem acessou dados de alunos e de quem usou a videochamada (LGPD e RNF05). Só leitura: nada aqui pode ser editado ou apagado.</p>
+<p class="text-body-secondary">Tudo o que acontece no sistema: entrada e saída, gestão, atividades, salas, acesso a dados de alunos e videochamadas, com data, hora e IP (LGPD, RNF05 e Marco Civil da Internet, art. 15). Só leitura: nada aqui pode ser editado ou apagado.</p>
 
 <nav class="d-flex flex-wrap gap-2 mb-3" aria-label="Tipo de registro">
   {% for chave, titulo in abas.items %}
@@ -15,15 +15,22 @@
 <form method="get" class="cartao mb-4" aria-label="Filtros">
   <input type="hidden" name="aba" value="{{ aba }}">
   <div class="row g-3 align-items-end">
-    <div class="col-md-3"><label class="form-label fw-semibold" for="f-pessoa">Pessoa</label>
+    {% if aba == 'acoes' %}
+    <div class="col-md-12 col-lg-3"><label class="form-label fw-semibold" for="f-tipo">Tipo</label>
+      <select class="form-select" id="f-tipo" name="tipo">
+        <option value="">Todos os tipos</option>
+        {% for valor, rotulo in tipos %}<option value="{{ valor }}"{% if g.tipo == valor %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+      </select></div>
+    {% endif %}
+    <div class="col-md-3 col-lg-2"><label class="form-label fw-semibold" for="f-pessoa">Pessoa</label>
       <input class="form-control" id="f-pessoa" name="pessoa" value="{{ g.pessoa }}" placeholder="Nome de quem fez"></div>
-    <div class="col-md-3"><label class="form-label fw-semibold" for="f-aluno">Aluno</label>
+    <div class="col-md-3 col-lg-2"><label class="form-label fw-semibold" for="f-aluno">Aluno</label>
       <input class="form-control" id="f-aluno" name="aluno" value="{{ g.aluno }}" placeholder="Nome do aluno"></div>
-    <div class="col-6 col-md-2"><label class="form-label fw-semibold" for="f-de">De</label>
+    <div class="col-6 col-md-2 col-lg-2"><label class="form-label fw-semibold" for="f-de">De</label>
       <input class="form-control" type="date" id="f-de" name="de" value="{{ g.de }}"></div>
     <div class="col-6 col-md-2"><label class="form-label fw-semibold" for="f-ate">Até</label>
       <input class="form-control" type="date" id="f-ate" name="ate" value="{{ g.ate }}"></div>
-    <div class="col-md-2 d-grid gap-2">
+    <div class="col-md-2 col-lg-1 d-grid gap-2">
       <button class="btn btn-primary" type="submit">Filtrar</button>
     </div>
   </div>
@@ -48,11 +55,13 @@
       </table>
     {% else %}
       <table class="table table-sm align-middle mb-0">
-        <thead><tr><th scope="col">Quando</th><th scope="col">Pessoa</th><th scope="col">Aluno</th><th scope="col">Ação</th></tr></thead>
+        <thead><tr><th scope="col">Quando</th><th scope="col">Tipo</th><th scope="col">Pessoa</th><th scope="col">Ação</th><th scope="col">Aluno</th><th scope="col">IP</th></tr></thead>
         <tbody>
           {% for log in object_list %}
-            <tr><td>{{ log.ocorrido_em|date:"d/m/Y H:i" }}</td><td>{{ log.user.name }}</td><td>{{ log.aluno.user.name }}</td><td>{{ log.acao }}</td></tr>
-          {% empty %}<tr><td colspan="4">Nenhum registro encontrado.</td></tr>{% endfor %}
+            <tr><td class="text-nowrap">{{ log.ocorrido_em|date:"d/m/Y H:i" }}</td><td>{{ log.get_categoria_display }}</td>
+                <td>{{ log.user.name|default:"—" }}</td><td>{{ log.acao }}</td>
+                <td>{{ log.aluno.user.name|default:"—" }}</td><td class="small">{{ log.ip|default:"—" }}</td></tr>
+          {% empty %}<tr><td colspan="6">Nenhum registro encontrado.</td></tr>{% endfor %}
         </tbody>
       </table>
     {% endif %}

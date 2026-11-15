@@ -47,3 +47,24 @@ ida e volta entre EUA e Brasil custa cerca de 0,1 s). O Render não tem servidor
 na Virgínia (EUA). Isso é uma **transferência internacional de dados** (LGPD, art. 33), informada na Política de
 Privacidade. Para uso real com dados de alunos, o ideal é hospedar tudo no Brasil (o Neon tem região São Paulo,
 mas aí a aplicação também precisaria ficar no Brasil).
+
+## Dados de demonstração (para a apresentação)
+
+O comando `popular_demo` cria um cenário fictício "em uso": 1 gestor, 5 profissionais (um esperando aprovação),
+9 alunos (um com pedido de vínculo esperando aceite e um sem profissional), atividades com PDF, 6 semanas de
+histórico (conclusões, correções, uma atividade refeita, prazos vencidos), pedidos de ajuda, salas com equipe,
+videochamadas passadas e a próxima já marcada, e a auditoria correspondente. Todas as contas usam e-mails
+`@example.com` (domínio reservado, RFC 2606) e nenhum e-mail é enviado. As datas são relativas ao dia em que o
+comando roda, então rode perto da apresentação.
+
+No PowerShell, na pasta do projeto, com a `DATABASE_URL` do Neon (copie do Render, aba *Environment*):
+
+```powershell
+$env:DATABASE_URL = "cole-aqui-a-DATABASE_URL"
+$env:ARMAZENAMENTO_ARQUIVOS = "banco"
+python manage.py popular_demo
+Remove-Item Env:DATABASE_URL, Env:ARMAZENAMENTO_ARQUIVOS
+```
+
+Depois da banca: `python manage.py popular_demo --apagar` (com as mesmas variáveis) remove só esses dados.
+O comando se recusa a rodar se o banco tiver migrações pendentes ou se os PDFs não forem para o banco.

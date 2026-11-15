@@ -2,6 +2,7 @@ import csv
 import json
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -11,7 +12,7 @@ from django.http import HttpResponse
 from django.db.models import Count
 from django.db.models.functions import TruncWeek
 from django.shortcuts import get_object_or_404, redirect, resolve_url
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.decorators import method_decorator
@@ -20,6 +21,7 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.generic import CreateView, FormView, ListView, TemplateView, UpdateView
 from rest_framework.generics import RetrieveAPIView
 
+from apps.acompanhamento.auditoria import Categoria, registrar
 from apps.acompanhamento.models import RegistroEvolucao
 from apps.atividades.models import Atividade
 
@@ -120,6 +122,8 @@ class RecuperarSenhaCodigoView(FormView):
                 return self.form_invalid(form)
             recuperacao.usar_codigo(registro, form.cleaned_data['nova_senha1'])
         del self.request.session[SESSAO_EMAIL_RECUPERACAO]
+        registrar(self.request, 'Trocou a senha com o código de recuperação', Categoria.AUTENTICACAO,
+                  user=registro.user)
         messages.success(self.request, 'Senha alterada. Agora é só entrar com a senha nova.')
         return super().form_valid(form)
 
@@ -146,6 +150,7 @@ class CadastroView(CreateView):
         if user.is_aluno:
             transaction.on_commit(lambda: enviar_notificacao_aluno_criado(user), robust=True)
         login(self.request, user)
+        registrar(self.request, f'Criou a conta ({user.get_role_display()})', Categoria.AUTENTICACAO, user=user)
         messages.success(self.request, 'Conta criada com sucesso. Bem-vindo(a) ao ConectaTEA!')
         return response
 
@@ -203,6 +208,7 @@ class AdminDashboardView(GestorRequiredMixin, TemplateView):
         kwargs['total_profissionais_aprovados'] = Profissional.objects.filter(is_approved=True).count()
         kwargs['total_profissionais_pendentes'] = len(pendentes)
         kwargs['profissionais_pendentes'] = pendentes
+        kwargs['brevo'] = {'chave': bool(settings.BREVO_API_KEY), 'remetente': settings.BREVO_SENDER_EMAIL}
         kwargs['profissionais_aprovados'] = (Profissional.objects.filter(is_approved=True, user__is_active=True)
                                              .select_related('user', 'aprovado_por').order_by('user__name'))
         kwargs['total_atividades'] = Atividade.objects.count()
@@ -229,6 +235,8 @@ class AprovarProfissionalGestaoView(GestorRequiredMixin, View):
         profissional.is_approved = True
         profissional.aprovado_em, profissional.aprovado_por = timezone.now(), request.user
         profissional.save(update_fields=['is_approved', 'aprovado_em', 'aprovado_por'])
+        registro = profissional.registro_formatado or profissional.especialidade
+        registrar(request, f'Aprovou o profissional {profissional.user.name} ({registro})', Categoria.GESTAO)
         messages.success(request, f'Profissional "{profissional.user.name}" aprovado.')
         return redirect('painel_gestao')
 
@@ -242,8 +250,23 @@ class RevogarProfissionalGestaoView(GestorRequiredMixin, View):
         profissional = get_object_or_404(Profissional.objects.select_related('user'), pk=pk, is_approved=True)
         profissional.is_approved = False
         profissional.save(update_fields=['is_approved'])
+        registrar(request, f'Revogou a aprovação de {profissional.user.name}', Categoria.GESTAO)
         messages.warning(request, f'Aprovação de "{profissional.user.name}" revogada.')
         return redirect('painel_gestao')
+
+
+class TesteEmailView(GestorRequiredMixin, View):
+    """Botão do Painel de Gestão: manda um e-mail de teste pelo Brevo e mostra o motivo, se falhar."""
+
+    http_method_names = ['post']
+
+    def post(self, request):
+        from .services.email import diagnosticar_brevo
+
+        destino = (request.POST.get('destino') or request.user.email).strip()
+        ok, mensagem = diagnosticar_brevo(destino)
+        (messages.success if ok else messages.error)(request, mensagem)
+        return redirect(reverse('painel_gestao') + '#titulo-email')
 
 
 class PreferenciasView(LoginRequiredMixin, UpdateView):
@@ -262,30 +285,34 @@ class PreferenciasView(LoginRequiredMixin, UpdateView):
 
 
 class AuditoriaView(GestorRequiredMixin, ListView):
-    """Aba Auditoria do Painel de Gestão (RNF05): quem acessou dados de alunos e quem usou a videochamada.
+    """Aba Auditoria do Painel de Gestão (RNF05, Marco Civil art. 15): todas as ações registradas e as videochamadas.
 
-    Só leitura. Filtros por pessoa, aluno e período; exporta o resultado filtrado em CSV.
+    Só leitura. Filtros por tipo, pessoa, aluno e período; exporta o resultado filtrado em CSV.
     """
 
     template_name = 'usuarios/auditoria.html'
     paginate_by = 30
-    ABAS = {'acessos': 'Acessos a dados de alunos', 'videochamadas': 'Videochamadas'}
+    ABAS = {'acoes': 'Todas as ações', 'acessos': 'Acessos a dados de alunos', 'videochamadas': 'Videochamadas'}
 
     def get_aba(self):
-        aba = self.request.GET.get('aba', 'acessos')
-        return aba if aba in self.ABAS else 'acessos'
+        aba = self.request.GET.get('aba', 'acoes')
+        return aba if aba in self.ABAS else 'acoes'
 
     def get_queryset(self):
         from apps.acompanhamento.models import LogAcesso
         from apps.salas.models import ParticipacaoVideochamada
 
-        g = self.request.GET
-        if self.get_aba() == 'videochamadas':
+        g, aba = self.request.GET, self.get_aba()
+        if aba == 'videochamadas':
             qs = ParticipacaoVideochamada.objects.select_related('user', 'sala__aluno__user')
             campo_data, campo_aluno = 'acionada_em', 'sala__aluno__user__name'
         else:
             qs = LogAcesso.objects.select_related('user', 'aluno__user')
             campo_data, campo_aluno = 'ocorrido_em', 'aluno__user__name'
+            if aba == 'acessos':
+                qs = qs.filter(categoria=LogAcesso.Categoria.DADOS_ALUNO)
+            elif g.get('tipo') in LogAcesso.Categoria.values:
+                qs = qs.filter(categoria=g['tipo'])
         if g.get('pessoa'):
             qs = qs.filter(user__name__icontains=g['pessoa'].strip())
         if g.get('aluno'):
@@ -306,23 +333,28 @@ class AuditoriaView(GestorRequiredMixin, ListView):
         resposta['Content-Disposition'] = f'attachment; filename="auditoria-{self.get_aba()}.csv"'
         resposta.write('\ufeff')  # BOM: o Excel abre os acentos certos
         escritor = csv.writer(resposta, delimiter=';')
-        local = timezone.localtime
+
+        def quando(data):
+            return timezone.localtime(data).strftime('%d/%m/%Y %H:%M') if data else ''
+
         if self.get_aba() == 'videochamadas':
             escritor.writerow(['Pessoa', 'Aluno da sala', 'Forma', 'Abriu', 'Entrada confirmada', 'Saída confirmada'])
             for p in self.get_queryset():
                 escritor.writerow([p.user.name, p.sala.aluno.user.name, p.get_forma_display(),
-                                   local(p.acionada_em).strftime('%d/%m/%Y %H:%M'),
-                                   p.entrou_em and local(p.entrou_em).strftime('%d/%m/%Y %H:%M'),
-                                   p.saiu_em and local(p.saiu_em).strftime('%d/%m/%Y %H:%M')])
+                                   quando(p.acionada_em), quando(p.entrou_em), quando(p.saiu_em)])
         else:
-            escritor.writerow(['Quando', 'Pessoa', 'Aluno', 'Ação'])
+            escritor.writerow(['Quando', 'Tipo', 'Pessoa', 'Aluno', 'Ação', 'IP'])
             for log in self.get_queryset():
-                escritor.writerow([local(log.ocorrido_em).strftime('%d/%m/%Y %H:%M'), log.user.name,
-                                   log.aluno.user.name, log.acao])
+                escritor.writerow([quando(log.ocorrido_em), log.get_categoria_display(),
+                                   log.user.name if log.user else '', log.aluno.user.name if log.aluno else '',
+                                   log.acao, log.ip or ''])
         return resposta
 
     def get_context_data(self, **kwargs):
+        from apps.acompanhamento.models import LogAcesso
+
         filtros = self.request.GET.copy()
         filtros.pop('page', None)
-        kwargs.update(aba=self.get_aba(), abas=self.ABAS, filtros=filtros.urlencode(), g=self.request.GET)
+        kwargs.update(aba=self.get_aba(), abas=self.ABAS, filtros=filtros.urlencode(), g=self.request.GET,
+                      tipos=LogAcesso.Categoria.choices)
         return super().get_context_data(**kwargs)

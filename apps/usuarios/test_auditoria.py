@@ -55,7 +55,7 @@ def test_exporta_csv(client, dados):
     resp = client.get(reverse('auditoria'), {'formato': 'csv'})
     conteudo = resp.content.decode('utf-8-sig')
     assert resp['Content-Type'].startswith('text/csv')
-    assert conteudo.splitlines()[0] == 'Quando;Pessoa;Aluno;Ação' and 'Carla' in conteudo
+    assert conteudo.splitlines()[0] == 'Quando;Tipo;Pessoa;Aluno;Ação;IP' and 'Carla' in conteudo
 
 
 @pytest.mark.django_db
@@ -66,3 +66,46 @@ def test_admin_nao_permite_apagar_log(client, dados):
     apagar = reverse('admin:acompanhamento_logacesso_delete', args=[log.pk])
     assert client.post(apagar, {'post': 'yes'}).status_code == 403
     assert LogAcesso.objects.filter(pk=log.pk).exists()
+
+
+@pytest.mark.django_db
+def test_auditoria_registra_login_senha_errada_e_logout_com_ip(client, dados):
+    url = reverse('login')
+    client.post(url, {'username': 'ana@ex.com', 'password': 'errada'}, REMOTE_ADDR='10.0.0.5')
+    client.post(url, {'username': 'ninguem@ex.com', 'password': 'errada'})
+    client.post(url, {'username': 'ana@ex.com', 'password': SENHA}, HTTP_X_FORWARDED_FOR='200.1.2.3, 10.0.0.1')
+    client.post(reverse('logout'))
+    logs = list(LogAcesso.objects.filter(categoria='autenticacao').order_by('pk').values_list('acao', 'ip'))
+    assert logs == [
+        ('Tentativa de login com senha errada', '10.0.0.5'),
+        ('Tentativa de login com e-mail não cadastrado (n***@ex.com)', '127.0.0.1'),
+        ('Entrou no sistema', '200.1.2.3'),  # no Render, o IP real vem no X-Forwarded-For
+        ('Saiu do sistema', '127.0.0.1'),
+    ]
+
+
+@pytest.mark.django_db
+def test_auditoria_registra_gestao_e_atividades(client, dados):
+    gestor = User.objects.create_superuser('adm@ex.com', 'Adm', SENHA)
+    pendente = Profissional.objects.create(
+        user=User.objects.create_user('nova@ex.com', 'Nova', SENHA, role=User.Role.PROFISSIONAL), especialidade='X')
+    client.force_login(gestor)
+    client.post(reverse('aprovar_profissional_gestao', args=[pendente.pk]))
+    client.post(reverse('revogar_profissional_gestao', args=[pendente.pk]))
+    client.force_login(dados['prof'].user)
+    client.post(reverse('painel'), {'title': 'Nova atividade', 'category': 'x', 'tipo_material': 'formulario',
+                                    'link_formulario': 'https://forms.gle/x'})
+    outras = LogAcesso.objects.exclude(categoria__in=['autenticacao', 'dados_aluno'])
+    acoes = list(outras.values_list('categoria', 'acao'))
+    assert ('gestao', 'Aprovou o profissional Nova (X)') in acoes
+    assert ('gestao', 'Revogou a aprovação de Nova') in acoes
+    assert ('atividades', 'Criou a atividade "Nova atividade"') in acoes
+
+
+@pytest.mark.django_db
+def test_aba_todas_as_acoes_filtra_por_tipo(client, dados):
+    client.force_login(User.objects.create_superuser('adm@ex.com', 'Adm', SENHA))  # gera "Entrou no sistema"
+    resp = client.get(reverse('auditoria'), {'tipo': 'autenticacao'})
+    assert {log.categoria for log in resp.context['object_list']} == {'autenticacao'}
+    resp = client.get(reverse('auditoria'), {'aba': 'acessos'})
+    assert {log.categoria for log in resp.context['object_list']} == {'dados_aluno'}

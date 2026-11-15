@@ -13,7 +13,7 @@ from django.utils.functional import cached_property
 from django.views import View
 from django.views.generic import TemplateView
 
-from apps.acompanhamento.models import LogAcesso
+from apps.acompanhamento.auditoria import Categoria, registrar
 from apps.atividades.models import Atividade
 from apps.usuarios.mixins import AlunoRequiredMixin, ProfissionalRequiredMixin
 from apps.usuarios.models import Aluno
@@ -43,6 +43,7 @@ class EnviarPedidoVinculoView(ProfissionalRequiredMixin, View):
             profissional=request.user.profissional, aluno=aluno, status=SolicitacaoVinculo.Status.PENDENTE,
         )
         if criado:
+            registrar(request, 'Enviou pedido de vínculo', Categoria.SALAS, aluno=aluno)
             messages.success(request, f'Pedido enviado. Agora {aluno.user.name} precisa aceitar.')
         else:
             messages.info(request, f'Você já enviou um pedido para {aluno.user.name}. Aguarde a resposta.')
@@ -66,6 +67,8 @@ class ResponderPedidoVinculoView(QualquerAlunoMixin, View):
             if resposta == 'recusar':
                 pedido.status, pedido.respondida_em = SolicitacaoVinculo.Status.RECUSADA, agora
                 pedido.save(update_fields=['status', 'respondida_em'])
+                registrar(request, f'Recusou o vínculo com {pedido.profissional.user.name}', Categoria.SALAS,
+                          aluno=aluno)
                 messages.info(request, f'Você recusou o pedido de {pedido.profissional.user.name}.')
                 return redirect('home')
             profissional = pedido.profissional
@@ -88,8 +91,7 @@ class ResponderPedidoVinculoView(QualquerAlunoMixin, View):
                 sala.save(update_fields=['dono', 'senha', 'id_videochamada'])
                 sala.membros.exclude(status=MembroSala.Status.REMOVIDO).update(
                     status=MembroSala.Status.REMOVIDO, respondido_em=agora)
-            LogAcesso.objects.create(user=request.user, aluno=aluno,
-                                     acao=f'Aceitou o vínculo com {profissional.user.name}')
+            registrar(request, f'Aceitou o vínculo com {profissional.user.name}', Categoria.SALAS, aluno=aluno)
         messages.success(request, f'Pronto! Agora {profissional.user.name} acompanha você.')
         return redirect('aluno_painel')
 
@@ -132,6 +134,7 @@ class EntrarSalaView(SalasView):
             # Recusado ou removido pode pedir de novo; o dono decide outra vez.
             membro.status, membro.respondido_em = MembroSala.Status.PENDENTE, None
             membro.save(update_fields=['status', 'respondido_em'])
+        registrar(request, 'Pediu para entrar na sala do aluno', Categoria.SALAS, aluno=sala.aluno)
         messages.success(request, f'Pedido enviado. {sala.dono.user.name}, dono da sala, precisa aprovar sua entrada.')
         return redirect('salas')
 
@@ -201,6 +204,9 @@ class ProporAtividadeView(SalaView):
             messages.success(request, f'Atividade "{atividade.title}" enviada. Ela aparece para o aluno depois que '
                                       f'{self.sala.dono.user.name} aprovar.')
         atividade.save()
+        acao = 'Publicou' if self.eh_dono() else 'Propôs'
+        registrar(request, f'{acao} a atividade "{atividade.title}" na sala', Categoria.ATIVIDADES,
+                  aluno=self.sala.aluno)
         return redirect('sala', pk=self.sala.pk)
 
 
@@ -221,6 +227,9 @@ class AnalisarAtividadeView(SoDonoMixin, View):
             atividade.publicacao = Atividade.Publicacao.RECUSADA
             messages.info(request, f'Atividade "{atividade.title}" recusada.')
         atividade.save(update_fields=['publicacao', 'motivo_recusa'])
+        verbo = 'Aprovou' if decisao == 'aprovar' else 'Recusou'
+        registrar(request, f'{verbo} a atividade proposta "{atividade.title}"', Categoria.ATIVIDADES,
+                  aluno=self.sala.aluno)
         return redirect('sala', pk=self.sala.pk)
 
 
@@ -244,10 +253,10 @@ class DecidirMembroView(SoDonoMixin, View):
             # Quem saiu ainda conhece o endereço da chamada: a sala ganha um endereço novo.
             self.sala.id_videochamada = uuid.uuid4()
             self.sala.save(update_fields=['id_videochamada'])
-        if para == MembroSala.Status.APROVADO:
-            # Auditoria: mais uma pessoa passa a ver os dados do aluno (RNF05).
-            LogAcesso.objects.create(user=request.user, aluno=self.sala.aluno,
-                                     acao=f'Aprovou {membro.profissional.user.name} na sala')
+        # Auditoria (RNF05): quem passa a ver, deixa de ver ou teve negado o acesso aos dados do aluno.
+        verbo = {MembroSala.Status.APROVADO: 'Aprovou', MembroSala.Status.RECUSADO: 'Recusou',
+                 MembroSala.Status.REMOVIDO: 'Removeu'}[para]
+        registrar(request, f'{verbo} {membro.profissional.user.name} na sala', Categoria.SALAS, aluno=self.sala.aluno)
         messages.success(request, f'{membro.profissional.user.name} {texto}.')
         return redirect('sala', pk=self.sala.pk)
 
@@ -261,6 +270,7 @@ class TrocarSenhaSalaView(SoDonoMixin, View):
         while Sala.objects.filter(senha=sala.senha).exclude(pk=sala.pk).exists():
             sala.senha = gerar_senha_sala()
         sala.save(update_fields=['senha'])
+        registrar(request, 'Trocou a senha da sala', Categoria.SALAS, aluno=sala.aluno)
         messages.success(request, 'Senha trocada. A senha antiga não funciona mais; quem já está na sala continua.')
         return redirect('sala', pk=sala.pk)
 
@@ -366,6 +376,7 @@ class AgendarChamadaView(SoDonoMixin, View):
             self.sala.proxima_chamada, self.sala.pauta_chamada = None, ''
             self.sala.resposta_aluno, self.sala.respondida_em = '', None
             self.sala.save(update_fields=['proxima_chamada', 'pauta_chamada', 'resposta_aluno', 'respondida_em'])
+            registrar(request, 'Desmarcou a videochamada', Categoria.SALAS, aluno=self.sala.aluno)
             messages.info(request, 'Próxima chamada desmarcada.')
             return redirect('sala', pk=self.sala.pk)
         form = AgendaChamadaForm(request.POST, instance=self.sala)
@@ -375,6 +386,8 @@ class AgendarChamadaView(SoDonoMixin, View):
             sala.save()
             aluno, quando = sala.aluno, sala.proxima_chamada
             transaction.on_commit(lambda: enviar_aviso_chamada_marcada(aluno, quando), robust=True)
+            registrar(request, f'Marcou videochamada para {timezone.localtime(quando):%d/%m/%Y %H:%M}',
+                      Categoria.SALAS, aluno=aluno)
             messages.success(request, 'Videochamada marcada. O aluno vê o dia e a hora e só consegue entrar nesse '
                                       'horário (de 15 minutos antes até 2 horas depois).')
         else:
@@ -396,6 +409,8 @@ class ResponderChamadaView(AlunoRequiredMixin, View):
             return redirect('minha_equipe')
         sala.resposta_aluno, sala.respondida_em = resposta, timezone.now()
         sala.save(update_fields=['resposta_aluno', 'respondida_em'])
+        texto = 'vai participar' if resposta == 'sim' else 'não vai conseguir'
+        registrar(request, f'Respondeu à videochamada: {texto}', Categoria.SALAS, aluno=sala.aluno)
         messages.success(request, 'Obrigado! O seu profissional vai ver a sua resposta.' if resposta == 'sim' else
                          'Tudo bem. O seu profissional vai ver que você não vai conseguir e pode marcar outro horário.')
         return redirect('aluno_painel' if request.POST.get('voltar') == 'inicio' else 'minha_equipe')

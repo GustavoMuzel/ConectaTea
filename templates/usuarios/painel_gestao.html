@@ -130,6 +130,23 @@
   </div>
 </section>
 
+<section class="mb-4" aria-labelledby="titulo-email">
+  <h2 id="titulo-email" class="h5 mb-3">E-mails (Brevo)</h2>
+  <div class="cartao">
+    <ul class="mb-3">
+      <li>Chave da API: {% if brevo.chave %}<strong>configurada</strong>{% else %}<strong class="text-danger">não configurada</strong> (variável BREVO_API_KEY){% endif %}</li>
+      <li>Remetente: {% if brevo.remetente %}<strong>{{ brevo.remetente }}</strong>{% else %}<strong class="text-danger">não configurado</strong> (variável BREVO_SENDER_EMAIL){% endif %}</li>
+    </ul>
+    <form method="post" action="{% url 'teste_email' %}" class="row g-2 align-items-end">
+      {% csrf_token %}
+      <div class="col-md-8"><label class="form-label fw-semibold" for="destino-teste">Enviar um e-mail de teste para</label>
+        <input class="form-control" type="email" id="destino-teste" name="destino" value="{{ user.email }}"></div>
+      <div class="col-md-4 d-grid"><button class="btn btn-outline-primary" type="submit">Enviar e-mail de teste</button></div>
+    </form>
+    <p class="small text-body-secondary mt-2 mb-0">Se der erro, a mensagem mostra o motivo que o Brevo devolveu e o que fazer.</p>
+  </div>
+</section>
+
 <section aria-labelledby="titulo-acesso-completo">
   <h2 id="titulo-acesso-completo" class="h5 mb-3">Acesso completo</h2>
   <p class="text-body-secondary">Para edições mais detalhadas, use as telas administrativas do Django.</p>

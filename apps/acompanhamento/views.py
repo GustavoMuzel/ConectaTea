@@ -18,6 +18,7 @@ from apps.atividades.models import Atividade
 from apps.usuarios.mixins import AlunoRequiredMixin, ProfissionalRequiredMixin
 from apps.usuarios.models import Aluno
 
+from .auditoria import Categoria, registrar
 from .forms import AnotacaoForm, ConclusaoForm, DistribuicaoAtividadeForm
 from .models import Anotacao, Atribuicao, PedidoAjuda, RegistroEvolucao
 
@@ -159,6 +160,7 @@ class ConcluirAtividadeView(AlunoRequiredMixin, View):
                 create_defaults={'profissional': atividade.profissional, 'status': Atribuicao.Status.CONCLUIDA},
             )
         if criado:
+            registrar(request, f'Concluiu a atividade "{atividade.title}"', Categoria.ATIVIDADES, aluno=aluno)
             messages.success(request, f'Atividade concluída: {atividade.title}.')
         else:
             messages.info(request, f'Esta atividade já estava concluída: {atividade.title}.')
@@ -182,6 +184,7 @@ class PedirAjudaView(AlunoRequiredMixin, View):
         if criado:
             profissional = aluno.profissional
             transaction.on_commit(lambda: enviar_aviso_pedido_ajuda(profissional), robust=True)
+            registrar(request, f'Pediu ajuda na atividade "{atividade.title}"', Categoria.ATIVIDADES, aluno=aluno)
             messages.success(request, 'Pronto! Avisamos o seu profissional que você precisa de ajuda.')
         else:
             messages.info(request, 'Você já pediu ajuda nesta atividade. O seu profissional já foi avisado.')
@@ -233,6 +236,8 @@ class AjudaRespondidaView(ProfissionalRequiredMixin, View):
                                    aluno__profissional=request.user.profissional)
         pedido.respondido_em, pedido.respondido_por = timezone.now(), request.user
         pedido.save(update_fields=['respondido_em', 'respondido_por'])
+        registrar(request, f'Respondeu ao pedido de ajuda em "{pedido.atividade.title}"', Categoria.ATIVIDADES,
+                  aluno=pedido.aluno)
         messages.success(request, 'Pedido de ajuda marcado como respondido.')
         return redirect('alunos_profissional')
 
@@ -272,6 +277,8 @@ class DistribuirAtividadeView(ProfissionalRequiredMixin, FormView):
                         robust=True)
         total = len(dados['alunos'])
         if criadas:
+            registrar(self.request, f'Distribuiu a atividade "{dados["atividade"].title}" para {criadas} aluno(s)',
+                      Categoria.ATIVIDADES)
             messages.success(self.request, f'Atividade distribuída: {criadas} de {total} aluno(s).')
         if criadas < total:
             messages.warning(self.request, 'Alguns alunos já tinham esta atividade e foram mantidos como estavam.')
@@ -338,6 +345,11 @@ class AnotacoesView(FormView):
 
 
 class AnotacoesProfissionalView(ProfissionalRequiredMixin, AnotacoesView):
+    def get(self, request, *args, **kwargs):
+        resposta = super().get(request, *args, **kwargs)
+        registrar(request, 'Visualizou as anotações do aluno', Categoria.DADOS_ALUNO, aluno=self.aluno)
+        return resposta
+
     @cached_property
     def aluno(self):
         # Só alunos do próprio profissional: id de outro dá 404.

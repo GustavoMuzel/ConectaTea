@@ -52,6 +52,10 @@ class LoginForm(BootstrapMixin, AuthenticationForm):
         email = self.cleaned_data.get('username')
         # RNF04: depois de 5 erros seguidos, nem confere a senha (vale também para a senha certa).
         if email and limites.login_bloqueado(email):
+            from apps.acompanhamento.auditoria import Categoria, registrar  # import local: evita ciclo entre apps
+
+            registrar(self.request, 'Login bloqueado: 5 tentativas erradas seguidas', Categoria.AUTENTICACAO,
+                      user=User.objects.filter(email__iexact=email).first())
             raise forms.ValidationError(self.error_messages['bloqueado'], code='bloqueado')
         try:
             cleaned = super().clean()

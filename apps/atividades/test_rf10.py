@@ -87,6 +87,6 @@ def test_sem_distribuicao_previa_o_aluno_nao_conclui(client, cenario):
 def test_visualizar_evolucao_registra_log_de_acesso(client, cenario):
     client.force_login(cenario['prof'].user)
     assert client.get(reverse('evolucao_aluno', args=[cenario['aluno'].pk])).status_code == 200
-    log = LogAcesso.objects.get()
-    assert (log.user, log.aluno, log.acao) == (cenario['prof'].user, cenario['aluno'], 'Visualizou evolução')
+    log = LogAcesso.objects.get(categoria=LogAcesso.Categoria.DADOS_ALUNO)  # o login também é registrado
+    assert (log.user, log.aluno, log.acao) == (cenario['prof'].user, cenario['aluno'], 'Visualizou a evolução do aluno')
     assert log.ocorrido_em is not None

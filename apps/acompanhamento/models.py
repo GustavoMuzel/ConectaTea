@@ -111,12 +111,27 @@ class Anotacao(models.Model):
 
 
 class LogAcesso(models.Model):
-    """Auditoria de acesso a dados de um aluno, p.ex. o profissional vendo o histórico dele (RF10, RNF05)."""
+    """Auditoria (RF10, RNF05): quem fez o quê, quando e de qual IP.
+
+    Cobre o acesso a dados de alunos e também entrada/saída, gestão, atividades e salas. O IP atende ao art. 15
+    do Marco Civil da Internet (guarda dos registros de acesso a aplicações). Só leitura: não se edita nem apaga.
+    """
+
+    class Categoria(models.TextChoices):
+        DADOS_ALUNO = 'dados_aluno', 'Dados de aluno'
+        AUTENTICACAO = 'autenticacao', 'Entrada e conta'
+        GESTAO = 'gestao', 'Gestão'
+        ATIVIDADES = 'atividades', 'Atividades'
+        SALAS = 'salas', 'Salas e vínculos'
 
     id = models.BigAutoField(primary_key=True, db_column='log_acesso_id')
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='logs_acesso')
-    aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name='logs_acesso')
-    acao = models.CharField('ação', max_length=100)
+    # Vazio só em tentativa de login com e-mail que não existe.
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='logs_acesso', null=True, blank=True)
+    # Preenchido quando a ação envolve um aluno.
+    aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, related_name='logs_acesso', null=True, blank=True)
+    categoria = models.CharField(max_length=20, choices=Categoria.choices, default=Categoria.DADOS_ALUNO)
+    acao = models.CharField('ação', max_length=200)
+    ip = models.GenericIPAddressField('IP', null=True, blank=True)
     ocorrido_em = models.DateTimeField('ocorrido em', auto_now_add=True)
 
     class Meta:
@@ -126,7 +141,7 @@ class LogAcesso(models.Model):
         ordering = ['-ocorrido_em', '-pk']
 
     def __str__(self):
-        return f'{self.user} - {self.acao} ({self.aluno})'
+        return f'{self.user or "?"} - {self.acao}'
 
 
 class PedidoAjuda(models.Model):

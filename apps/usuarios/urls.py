@@ -15,6 +15,7 @@ urlpatterns = [
     path('preferencias/', views.PreferenciasView.as_view(), name='preferencias'),
     path('painel-gestao/', views.AdminDashboardView.as_view(), name='painel_gestao'),
     path('painel-gestao/auditoria/', views.AuditoriaView.as_view(), name='auditoria'),
+    path('painel-gestao/teste-email/', views.TesteEmailView.as_view(), name='teste_email'),
     path('painel-gestao/profissional/<int:pk>/aprovar/', views.AprovarProfissionalGestaoView.as_view(),
          name='aprovar_profissional_gestao'),
     path('painel-gestao/profissional/<int:pk>/revogar/', views.RevogarProfissionalGestaoView.as_view(),

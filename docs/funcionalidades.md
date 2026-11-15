@@ -44,6 +44,10 @@ Aqui estão as funcionalidades entregues no projeto, com o comportamento esperad
 - **Preciso de ajuda**: na tela da atividade, o aluno clica em "Preciso de ajuda" (texto opcional: "O que está difícil?"). O profissional responsável recebe um e-mail e vê o pedido em "Meus alunos", com um contador no menu, e marca como respondido. Um pedido aberto por atividade.
 - **Resposta à videochamada**: com uma chamada marcada, o aluno responde "Vou participar" ou "Não vou conseguir" no Início ou em "Minha equipe"; o dono vê a resposta na sala. Remarcar o horário apaga a resposta anterior.
 
+## E-mails (Brevo)
+
+- No Painel de Gestão, a seção **"E-mails (Brevo)"** mostra se a chave e o remetente estão configurados e tem o botão **"Enviar e-mail de teste"**. Se o Brevo recusar, a mensagem explica o motivo e o que fazer (IP do servidor não autorizado, chave inválida, remetente não validado). O mesmo motivo vai para o log do servidor em cada falha.
+
 ## Avisos por e-mail ao responsável
 
 - Quando o profissional **marca uma videochamada** (para o responsável e para o aluno) e quando **distribui uma atividade** (com o prazo, se houver).
@@ -61,7 +65,7 @@ Aqui estão as funcionalidades entregues no projeto, com o comportamento esperad
 
 ## Gestão e Administração
 
-- **Auditoria (`/painel-gestao/auditoria/`)**: aba do Painel de Gestão, só para gestor. Lista os registros de acesso a dados de alunos (`LogAcesso`) e as videochamadas, com filtro por pessoa, aluno e período, paginação e exportação em CSV. Só leitura; no admin, os registros também não podem ser criados, editados nem apagados.
+- **Auditoria (`/painel-gestao/auditoria/`)**: aba do Painel de Gestão, só para gestor. **Todas as ações** ficam registradas com data, hora, pessoa, aluno envolvido (quando houver) e **IP** (Marco Civil da Internet, art. 15): entrada e conta (login, senha errada, e-mail não cadastrado, bloqueio, saída, conta criada, senha trocada), gestão (aprovar e revogar profissional), atividades (criar, editar, arquivar, distribuir, concluir, pedir e responder ajuda, propor e analisar na sala), salas (pedido, aceite e recusa de vínculo, entrada, aprovação, recusa e remoção de membros, senha, videochamada marcada ou desmarcada e resposta do aluno) e acesso a dados de alunos (evolução, correções, anotações). Abas "Todas as ações" (com filtro por tipo), "Acessos a dados de alunos" e "Videochamadas"; filtros por pessoa, aluno e período; exportação em CSV. Só leitura; no admin, os registros também não podem ser criados, editados nem apagados.
 - **Painel de Gestão (`/painel-gestao/`)**: um dashboard feito no front-end com Bootstrap, pensado como opção mais simples que o admin técnico do Django. O acesso é restrito a `is_superuser` ou a `is_staff` que tenha a permissão `usuarios.change_profissional`. A tela mostra os KPIs (alunos ativos, profissionais aprovados, profissionais aguardando aprovação e total de atividades) e a lista de profissionais pendentes. Cada um tem um botão "Aprovar conta", que aprova com um clique só (POST) e volta ao painel com uma mensagem de sucesso. Para edições mais detalhadas, a seção "Acesso completo" leva às telas nativas do Django Admin.
 - **Admin nativo do Django (`/admin/`)**: recebeu alguns ajustes:
   - ação em massa que aprova os profissionais selecionados;
