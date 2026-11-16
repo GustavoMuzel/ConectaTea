@@ -7,13 +7,18 @@
     <li class="cartao">
       <h2 class="h5 mb-1">{{ atividade.title }}</h2>
       <p class="text-body-secondary mb-2">{{ atividade.category }}{% if atividade.tipo_material == 'pdf' %} · PDF{% elif atividade.tipo_material == 'formulario' %} · Formulário{% endif %}</p>
+      {% if atividade.prazo %}
+        <p class="mb-2{% if atividade.prazo < hoje %} text-danger fw-semibold{% endif %}">
+          Prazo: {{ atividade.prazo|date:"d/m/Y" }}{% if atividade.prazo < hoje %} (passou do prazo){% elif atividade.prazo == hoje %} (é hoje){% endif %}
+        </p>
+      {% endif %}
       {% if atividade.description %}<p>{{ atividade.description|linebreaksbr }}</p>{% endif %}
       <a class="btn btn-primary btn-lg w-100" href="{% url 'confirmar_conclusao' atividade.pk %}">
         Fazer atividade<span class="visually-hidden">: {{ atividade.title }}</span>
       </a>
     </li>
   {% empty %}
-    <li class="cartao">Você não tem atividades para fazer agora.</li>
+    <li class="cartao">Você não tem atividades para fazer agora. Quando o seu profissional enviar uma atividade, ela aparece aqui.</li>
   {% endfor %}
 </ul>
 {% endblock %}

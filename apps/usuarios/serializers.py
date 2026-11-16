@@ -19,7 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
 class ProfissionalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profissional
-        fields = ['id', 'user', 'especialidade', 'registro_profissional']
+        fields = ['id', 'user', 'especialidade', 'profissao', 'registro_profissional']
 
 
 class AlunoSerializer(serializers.ModelSerializer):

@@ -5,10 +5,12 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from apps.acompanhamento.models import RegistroEvolucao
+from apps.acompanhamento.models import Atribuicao, RegistroEvolucao
 from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import Atividade
+
+pytestmark = pytest.mark.integration
 
 SENHA = 'Senha-forte-123'
 PDF = b'%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF'
@@ -103,6 +105,7 @@ def test_trocar_pdf_por_formulario_limpa_o_pdf(client, prof):
 def test_aluno_precisa_abrir_o_material_e_escrever_para_concluir(client, prof, aluno):
     _criar(client, prof, tipo_material='pdf', arquivo_pdf=_pdf())
     atividade = Atividade.objects.get()
+    Atribuicao.objects.create(atividade=atividade, aluno=aluno, profissional=prof)
     client.force_login(aluno.user)
     concluir = reverse('concluir_atividade', args=[atividade.pk])
 
@@ -126,6 +129,7 @@ def test_aluno_precisa_abrir_o_material_e_escrever_para_concluir(client, prof, a
 def test_formulario_leva_ao_google_forms(client, prof, aluno):
     _criar(client, prof, tipo_material='formulario', link_formulario='https://forms.gle/abc')
     atividade = Atividade.objects.get()
+    Atribuicao.objects.create(atividade=atividade, aluno=aluno, profissional=prof)
     client.force_login(aluno.user)
     resp = client.get(reverse('material_atividade', args=[atividade.pk]))
     assert resp.status_code == 302 and resp.url == 'https://forms.gle/abc'

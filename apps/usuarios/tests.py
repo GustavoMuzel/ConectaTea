@@ -6,6 +6,8 @@ from django.db.models import ProtectedError
 
 from .models import Aluno, Profissional, User
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.django_db
 def test_relacionamentos_usuarios():

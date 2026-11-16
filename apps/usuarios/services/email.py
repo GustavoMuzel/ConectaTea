@@ -15,6 +15,14 @@ logger = logging.getLogger(__name__)
 BREVO_URL = 'https://api.brevo.com/v3/smtp/email'
 
 
+def _motivo(resp):
+    """Mensagem de erro que o Brevo devolve no corpo da resposta (sem a chave), para o log e o diagnóstico."""
+    try:
+        return str(resp.json().get('message', ''))[:300]
+    except (ValueError, AttributeError, TypeError):
+        return str(getattr(resp, 'text', ''))[:300]
+
+
 def enviar_email(para_email: str, assunto: str, html: str) -> bool:
     """Envia um e-mail. Nunca levanta exceção: falha de e-mail não pode quebrar o fluxo do usuário."""
     if not settings.BREVO_API_KEY:
@@ -32,10 +40,48 @@ def enviar_email(para_email: str, assunto: str, html: str) -> bool:
             headers={'api-key': settings.BREVO_API_KEY, 'accept': 'application/json'},
         )
         resp.raise_for_status()
+    except requests.HTTPError:
+        # O motivo do Brevo vai para o log do Render (ex.: IP não autorizado, remetente não validado).
+        logger.error('Brevo recusou o e-mail "%s": HTTP %s - %s', assunto, getattr(resp, 'status_code', '?'),
+                     _motivo(resp))
+        return False
     except requests.RequestException:
         logger.exception('Falha ao enviar e-mail "%s" pelo Brevo.', assunto)
         return False
     return True
+
+
+def diagnosticar_brevo(para_email: str) -> tuple[bool, str]:
+    """Envia um e-mail de teste e devolve (deu certo?, explicação em português do que fazer)."""
+    if not settings.BREVO_API_KEY:
+        return False, 'A variável BREVO_API_KEY não está configurada no servidor (Render > Environment).'
+    if not settings.BREVO_SENDER_EMAIL:
+        return False, 'A variável BREVO_SENDER_EMAIL (remetente) não está configurada no servidor.'
+    payload = {
+        'sender': {'email': settings.BREVO_SENDER_EMAIL, 'name': settings.BREVO_SENDER_NAME},
+        'to': [{'email': para_email}],
+        'subject': 'Teste de e-mail do ConectaTEA',
+        'htmlContent': '<p>Este é um e-mail de teste do ConectaTEA. Se você recebeu, o envio está funcionando.</p>',
+    }
+    try:
+        resp = requests.post(BREVO_URL, json=payload, timeout=(3, 10),
+                             headers={'api-key': settings.BREVO_API_KEY, 'accept': 'application/json'})
+    except requests.RequestException as erro:
+        return False, f'Não foi possível falar com o Brevo ({erro.__class__.__name__}). Tente de novo em instantes.'
+    if resp.ok:
+        return True, f'E-mail de teste enviado para {para_email}. Confira a caixa de entrada e o spam.'
+    motivo = _motivo(resp)
+    if resp.status_code == 401 and 'ip' in motivo.lower():
+        return False, ('O Brevo bloqueou o IP do servidor. No Brevo, abra Segurança > IPs autorizados '
+                       '(app.brevo.com/security/authorised_ips) e desative o bloqueio de IPs desconhecidos. '
+                       f'Mensagem do Brevo: {motivo}')
+    if resp.status_code == 401:
+        return False, ('A chave da API do Brevo não foi aceita. Gere uma chave nova em SMTP e API > Chaves API. '
+                       f'({motivo})')
+    if resp.status_code == 400 and 'sender' in motivo.lower():
+        return False, (f'O remetente {settings.BREVO_SENDER_EMAIL} não está validado no Brevo. Em Remetentes, '
+                       f'adicione esse e-mail e confirme pelo link que o Brevo envia. ({motivo})')
+    return False, f'O Brevo recusou o envio: HTTP {resp.status_code} - {motivo}'
 
 
 def enviar_boas_vindas(user: User) -> bool:
@@ -84,3 +130,47 @@ def enviar_codigo_recuperacao(para_email: str, codigo: str) -> bool:
         # Só em desenvolvimento e sem Brevo: mostra o código no terminal para dar para testar o fluxo.
         logger.info('Código de recuperação de senha para %s (DEBUG): %s', para_email, codigo)
     return enviado
+
+
+# Avisos ao responsável e ao profissional. Sem nomes nem conteúdo de atividades no e-mail: só o essencial e o
+# convite para entrar no sistema (menos dado de menor circulando por e-mail e menos risco de phishing).
+
+def _formatar(quando):
+    return timezone.localtime(quando).strftime('%d/%m/%Y às %Hh%M')
+
+
+def enviar_aviso_chamada_marcada(aluno, quando) -> bool:
+    html = format_html(
+        '<p>Olá.</p><p>O profissional que acompanha o aluno no ConectaTEA marcou uma videochamada para '
+        '<strong>{}</strong>.</p><p>Ela abre 15 minutos antes, em "Minha equipe". A chamada não é gravada.</p>',
+        _formatar(quando),
+    )
+    enviado = enviar_email(aluno.guardian_email, 'Videochamada marcada no ConectaTEA', html)
+    enviar_email(aluno.user.email, 'Videochamada marcada no ConectaTEA', html)
+    return enviado
+
+
+def enviar_aviso_atividade_enviada(aluno, prazo) -> bool:
+    html = format_html(
+        '<p>Olá.</p><p>O aluno recebeu uma nova atividade no ConectaTEA{}.</p>'
+        '<p>Ela aparece no Início e em "Minhas atividades".</p>',
+        format_html(', com prazo até <strong>{}</strong>', prazo.strftime('%d/%m/%Y')) if prazo else '',
+    )
+    return enviar_email(aluno.guardian_email, 'Nova atividade no ConectaTEA', html)
+
+
+def enviar_aviso_atividades_atrasadas(aluno, quantidade) -> bool:
+    html = format_html(
+        '<p>Olá.</p><p>O aluno tem <strong>{}</strong> atividade(s) no ConectaTEA que passaram do prazo. '
+        'Ele ainda pode fazer.</p><p>Se precisar, o botão "Preciso de ajuda" avisa o profissional.</p>',
+        quantidade,
+    )
+    return enviar_email(aluno.guardian_email, 'Atividades com prazo vencido no ConectaTEA', html)
+
+
+def enviar_aviso_pedido_ajuda(profissional) -> bool:
+    html = mark_safe(  # texto fixo, sem dado do usuário
+        '<p>Olá.</p><p>Um aluno pediu ajuda em uma atividade no ConectaTEA.</p>'
+        '<p>Veja o pedido em "Meus alunos".</p>'
+    )
+    return enviar_email(profissional.user.email, 'Pedido de ajuda no ConectaTEA', html)

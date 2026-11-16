@@ -8,7 +8,8 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from apps.acompanhamento.models import LogAcesso, RegistroEvolucao
+from apps.acompanhamento.auditoria import Categoria, registrar
+from apps.acompanhamento.models import RegistroEvolucao
 from apps.usuarios.mixins import ProfissionalRequiredMixin
 from apps.salas.models import SolicitacaoVinculo, alunos_do_profissional
 from apps.usuarios.models import Aluno
@@ -34,7 +35,9 @@ class PainelView(ProfissionalRequiredMixin, CreateView):
         # Dono vem da sessão, nunca do POST.
         form.instance.profissional = self.request.user.profissional
         messages.success(self.request, f'Atividade "{form.instance.title}" cadastrada.')
-        return super().form_valid(form)
+        resposta = super().form_valid(form)
+        registrar(self.request, f'Criou a atividade "{self.object.title}"', Categoria.ATIVIDADES)
+        return resposta
 
 
 class AtividadeUpdateView(ProfissionalRequiredMixin, UpdateView):
@@ -47,6 +50,7 @@ class AtividadeUpdateView(ProfissionalRequiredMixin, UpdateView):
         return self.request.user.profissional.atividades.all()
 
     def form_valid(self, form):
+        registrar(self.request, f'Editou a atividade "{form.instance.title}"', Categoria.ATIVIDADES)
         messages.success(self.request, f'Atividade "{form.instance.title}" atualizada.')
         return super().form_valid(form)
 
@@ -60,6 +64,7 @@ class ArquivarAtividadeView(ProfissionalRequiredMixin, View):
         atividade = get_object_or_404(request.user.profissional.atividades, pk=pk)
         atividade.arquivada = True
         atividade.save(update_fields=['arquivada'])
+        registrar(request, f'Arquivou a atividade "{atividade.title}"', Categoria.ATIVIDADES)
         messages.success(request, f'Atividade "{atividade.title}" arquivada.')
         return redirect('painel')
 
@@ -75,6 +80,10 @@ class AlunosDoProfissionalView(ProfissionalRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         profissional = self.request.user.profissional
+        from apps.acompanhamento.models import PedidoAjuda
+        kwargs['pedidos_ajuda'] = (PedidoAjuda.objects.filter(aluno__profissional=profissional,
+                                                              respondido_em__isnull=True)
+                                   .select_related('aluno__user', 'atividade').order_by('criado_em'))
         kwargs['da_equipe'] = (alunos_do_profissional(profissional).exclude(profissional=profissional)
                                .select_related('user', 'sala__dono__user').order_by('user__name'))
         return super().get_context_data(**kwargs)
@@ -107,7 +116,7 @@ class EvolucaoAlunoView(ProfissionalRequiredMixin, DetailView):
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
         # Auditoria (RF10/RNF05): só chega aqui se o aluno é do profissional; 403/404 não geram log.
-        LogAcesso.objects.create(user=request.user, aluno=self.object, acao='Visualizou evolução')
+        registrar(request, 'Visualizou a evolução do aluno', Categoria.DADOS_ALUNO, aluno=self.object)
         return response
 
     def get_queryset(self):
@@ -138,6 +147,8 @@ class SalvarObservacaoView(ProfissionalRequiredMixin, View):
         form = ObservacaoForm(request.POST, instance=registro)
         if form.is_valid():
             form.save()
+            registrar(request, f'Escreveu correção na atividade "{registro.atividade.title}"', Categoria.DADOS_ALUNO,
+                      aluno=aluno)
             messages.success(request, 'Anotação salva.')
         else:
             messages.error(request, 'Não foi possível salvar a anotação.')

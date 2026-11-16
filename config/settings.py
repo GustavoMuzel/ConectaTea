@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 import os
 from pathlib import Path
+from urllib.parse import parse_qsl, unquote, urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
@@ -32,6 +33,12 @@ SECRET_KEY = os.environ['SECRET_KEY']
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# O Render informa o próprio endereço público nesta variável.
+if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+    ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
+
+# PRODUCAO=True no servidor (render.yaml): liga HTTPS obrigatório, cookies seguros e arquivos estáticos com hash.
+PRODUCAO = os.getenv('PRODUCAO', 'False') == 'True'
 
 
 # Application definition
@@ -54,6 +61,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # serve os arquivos estáticos no servidor, sem nginx
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -89,11 +97,29 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-# SQLite por padrão; DB_ENGINE=postgresql no .env liga o PostgreSQL (DB_NAME, DB_USER, DB_PASSWORD, ...).
+# Ordem: DATABASE_URL (Neon/Render) > DB_ENGINE=postgresql (variáveis DB_*) > SQLite (padrão no desenvolvimento).
 DB_ENGINE = os.getenv('DB_ENGINE', 'sqlite')
 if DB_ENGINE not in ('sqlite', 'postgresql'):
     raise ImproperlyConfigured(f'DB_ENGINE inválido: {DB_ENGINE!r} (use sqlite ou postgresql)')
-if DB_ENGINE == 'postgresql':
+if os.getenv('DATABASE_URL'):
+    url = urlparse(os.environ['DATABASE_URL'])
+    if url.scheme not in ('postgres', 'postgresql'):
+        raise ImproperlyConfigured('DATABASE_URL precisa começar com postgresql://')
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': url.path.lstrip('/'),
+            'USER': unquote(url.username or ''),
+            'PASSWORD': unquote(url.password or ''),
+            'HOST': url.hostname,
+            'PORT': str(url.port or 5432),
+            # sslmode=require etc. vêm na própria URL do Neon.
+            'OPTIONS': dict(parse_qsl(url.query)),
+            'CONN_MAX_AGE': 60,
+            'CONN_HEALTH_CHECKS': True,
+        }
+    }
+elif DB_ENGINE == 'postgresql':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -154,9 +180,52 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # destino do collectstatic, servido pelo WhiteNoise
 
 # PDFs das atividades. Não ficam públicos: são entregues por uma view que confere quem pode ver.
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Onde ficam os PDFs: 'disco' (pasta media/, padrão no desenvolvimento) ou 'banco' (tabela arquivos_armazenados).
+# No Render gratuito o disco é apagado a cada reinício, então lá usamos 'banco' (render.yaml).
+ARMAZENAMENTO_ARQUIVOS = os.getenv('ARMAZENAMENTO_ARQUIVOS', 'disco')
+if ARMAZENAMENTO_ARQUIVOS not in ('disco', 'banco'):
+    raise ImproperlyConfigured('ARMAZENAMENTO_ARQUIVOS precisa ser disco ou banco')
+STORAGES = {
+    'default': {
+        'BACKEND': ('apps.atividades.armazenamento.BancoDeDadosStorage' if ARMAZENAMENTO_ARQUIVOS == 'banco'
+                    else 'django.core.files.storage.FileSystemStorage'),
+    },
+    'staticfiles': {
+        'BACKEND': ('whitenoise.storage.CompressedManifestStaticFilesStorage' if PRODUCAO
+                    else 'django.contrib.staticfiles.storage.StaticFilesStorage'),
+    },
+}
+
+if PRODUCAO:
+    # O Render recebe o HTTPS e repassa para a aplicação com este cabeçalho.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '3600'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True  # o site não tem subdomínios próprios
+    CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in ALLOWED_HOSTS if host not in ('localhost', '127.0.0.1')]
+    # Os e-mails saem pela API REST do Brevo (apps/usuarios/services/email.py), e não pelo envio de e-mail do
+    # Django; por isso o aviso sobre o backend de e-mail de desenvolvimento não se aplica.
+    # security.W021 (HSTS preload): a lista de preload dos navegadores só aceita domínio próprio, e o site fica num
+    # subdomínio do onrender.com. Com domínio próprio, ligar SECURE_HSTS_PRELOAD e subir o SECURE_HSTS_SECONDS.
+    SILENCED_SYSTEM_CHECKS = ['mail.E001', 'security.W021']
+
+
+# Cache no banco: o limite de tentativas de login e de pedidos de código vale para todos os processos da
+# aplicação (com vários workers, o cache em memória contaria cada processo separado). A tabela é criada por
+# migração (usuarios.0008).
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_conectatea',
+    },
+}
 
 
 # Email
@@ -177,6 +246,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API do ConectaTEA',
+    'DESCRIPTION': 'Autenticação JWT, atividades do aluno e alunos acompanhados pelo profissional. '
+                   'Para testar: chame /api/auth/login/, copie o "access" e use o botão Authorize.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
 
 BREVO_API_KEY = os.getenv('BREVO_API_KEY', '')

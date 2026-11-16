@@ -6,6 +6,8 @@ from rest_framework.test import APIClient
 from .models import Aluno, Profissional, User
 from .serializers import UserSerializer
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'senha-forte-123'
 
 
@@ -72,7 +74,8 @@ def test_me_de_profissional(client):
     assert 'password' not in resp.data
     assert resp.data['aluno'] is None
     assert resp.data['profissional'] == {
-        'id': prof.id, 'user': prof.user_id, 'especialidade': 'Psicologia', 'registro_profissional': 'CRP 06/1',
+        'id': prof.id, 'user': prof.user_id, 'especialidade': 'Psicologia', 'profissao': '',
+        'registro_profissional': 'CRP 06/1',
     }
 
 

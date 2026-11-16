@@ -1,0 +1,35 @@
+# Blueprint do Render: no painel do Render, "New > Blueprint" e escolha este repositório e a branch.
+services:
+  - type: web
+    name: conectatea
+    runtime: python
+    plan: free
+    region: virginia            # mesma região do banco no Neon (AWS us-east-1) para as páginas ficarem rápidas
+    buildCommand: bash build.sh
+    startCommand: gunicorn config.wsgi:application --workers 2 --timeout 60
+    healthCheckPath: /api/saude/
+    envVars:
+      - key: PRODUCAO
+        value: "True"
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true       # o Render gera uma chave aleatória
+      - key: ARMAZENAMENTO_ARQUIVOS
+        value: banco              # o disco do plano gratuito é apagado a cada reinício
+      - key: JITSI_DOMINIO
+        value: meet.jit.si
+      - key: DATABASE_URL         # copie do Neon (Connection string, com ?sslmode=require)
+        sync: false
+      - key: CONTATO_EMAIL
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_NAME
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false

@@ -8,6 +8,8 @@ from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import Atribuicao, RegistroEvolucao
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 URL = reverse('dashboard_profissional')
 

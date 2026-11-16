@@ -27,8 +27,13 @@
       Depois de criar a conta, um administrador vai conferir seus dados. Você já poderá entrar, mas só
       conseguirá cadastrar atividades e acompanhar alunos <strong>depois da aprovação</strong>.
     </div>
-    {{ form.especialidade.as_field_group }}
-    {{ form.registro_profissional.as_field_group }}
+    {{ form.profissao.as_field_group }}
+    <div id="bloco-registro">
+      {{ form.uf_registro.as_field_group }}
+      {{ form.numero_registro.as_field_group }}
+      <p class="small text-body-secondary">O administrador confere o seu registro no site do conselho antes de aprovar a conta.</p>
+    </div>
+    {{ form.area_atuacao.as_field_group }}
   </fieldset>
 
   <fieldset id="bloco-aluno" class="border rounded p-3 mb-3">
@@ -72,6 +77,30 @@
       radio.addEventListener('change', atualizarBlocos);
     });
     atualizarBlocos();
+
+    // Registro no conselho só para profissões que têm conselho (pedagogia não tem).
+    var profissao = document.getElementById('id_profissao');
+    var blocoRegistro = document.getElementById('bloco-registro');
+    var comConselho = {{ profissoes_com_conselho|safe }};
+    function atualizarRegistro() {
+      blocoRegistro.classList.toggle('d-none', comConselho.indexOf(profissao.value) === -1);
+    }
+    profissao.addEventListener('change', atualizarRegistro);
+    atualizarRegistro();
+
+    // Celular do responsável: só números, no máximo 11 (DDD + 9 dígitos), já no formato (11) 98765-4321.
+    // O servidor confere de novo; a máscara só evita o erro antes de enviar.
+    var celular = document.getElementById('id_guardian_phone');
+    function formatarCelular() {
+      var d = celular.value.replace(/\D/g, '');
+      if (d.length > 11 && d.indexOf('55') === 0) d = d.slice(2);  // +55 do Brasil colado junto
+      d = d.slice(0, 11);
+      if (d.length > 7) celular.value = '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+      else if (d.length > 2) celular.value = '(' + d.slice(0, 2) + ') ' + d.slice(2);
+      else celular.value = d.length ? '(' + d : '';
+    }
+    celular.addEventListener('input', formatarCelular);
+    formatarCelular();
   });
 </script>
 {% endblock %}

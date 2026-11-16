@@ -6,7 +6,9 @@ from django.urls import reverse
 from apps.atividades.models import Atividade
 from apps.usuarios.models import Aluno, Profissional, User
 
-from .models import RegistroEvolucao
+from .models import Atribuicao, RegistroEvolucao
+
+pytestmark = pytest.mark.integration
 
 SENHA = 'Senha-forte-123'
 LISTA = reverse('aluno_atividades')
@@ -32,10 +34,14 @@ def cenario(client):
     prof, outro = _prof('prof@ex.com'), _prof('outro@ex.com')
     aluno = _aluno('aluno@ex.com', prof)
     client.force_login(aluno.user)
+    minha1 = Atividade.objects.create(profissional=prof, title='Cumprimentar', category='social')
+    minha2 = Atividade.objects.create(profissional=prof, title='Pedir <b>ajuda</b>', category='social')
+    for atividade in (minha1, minha2):  # o aluno só recebe o que foi distribuído a ele (RF07)
+        Atribuicao.objects.create(atividade=atividade, aluno=aluno, profissional=prof)
     return {
-        'aluno': aluno,
-        'minha1': Atividade.objects.create(profissional=prof, title='Cumprimentar', category='social'),
-        'minha2': Atividade.objects.create(profissional=prof, title='Pedir <b>ajuda</b>', category='social'),
+        'aluno': aluno, 'prof': prof,
+        'minha1': minha1,
+        'minha2': minha2,
         'alheia': Atividade.objects.create(profissional=outro, title='Alheia', category='social'),
         'outro_aluno': _aluno('colega@ex.com', outro),
     }
@@ -183,8 +189,8 @@ def test_lista_vazia_mostra_aviso(client, cenario):
 
 
 @pytest.mark.django_db
-def test_home_do_aluno_leva_para_atividades(client, cenario):
-    assert client.get(reverse('home')).url == LISTA
+def test_home_do_aluno_leva_para_o_painel(client, cenario):
+    assert client.get(reverse('home')).url == reverse('aluno_painel')
 
 
 @pytest.mark.django_db
@@ -198,3 +204,43 @@ def test_profissional_bloqueado_nao_entrega_atividades(client, cenario, bloqueio
     assert list(client.get(LISTA).context['atividades']) == []
     assert client.post(reverse('concluir_atividade', args=[cenario['minha1'].pk])).status_code == 404
     assert not RegistroEvolucao.objects.exists()
+
+
+@pytest.mark.django_db
+def test_atividade_distribuida_so_para_um_aluno_nao_aparece_para_o_colega(client, cenario):
+    # Caso do parecer: distribuída só ao aluno A; o aluno B, do mesmo profissional, não pode ver nem abrir.
+    so_do_a = Atividade.objects.create(profissional=cenario['prof'], title='Só do A', category='social')
+    Atribuicao.objects.create(atividade=so_do_a, aluno=cenario['aluno'], profissional=cenario['prof'])
+    colega = _aluno('colega-b@ex.com', cenario['prof'])
+    client.force_login(colega.user)
+    assert so_do_a not in client.get(LISTA).context['atividades']
+    assert client.get(reverse('confirmar_conclusao', args=[so_do_a.pk])).status_code == 404
+    assert client.post(reverse('concluir_atividade', args=[so_do_a.pk]), {'resposta': 'x'}).status_code == 404
+    assert not RegistroEvolucao.objects.filter(aluno=colega).exists()
+
+
+@pytest.mark.django_db
+def test_biblioteca_sem_distribuicao_nao_aparece(client, cenario):
+    nao_enviada = Atividade.objects.create(profissional=cenario['prof'], title='Ainda não enviada', category='x')
+    assert nao_enviada not in client.get(LISTA).context['atividades']
+
+
+@pytest.mark.django_db
+def test_prazo_da_distribuicao_aparece_e_ordena_a_lista(client, cenario):
+    hoje = datetime.date.today()
+    Atribuicao.objects.filter(atividade=cenario['minha2']).update(prazo=hoje + datetime.timedelta(days=2))
+    resp = client.get(LISTA)
+    assert list(resp.context['atividades'])[0] == cenario['minha2']  # com prazo vem antes
+    assert (hoje + datetime.timedelta(days=2)).strftime('%d/%m/%Y') in resp.content.decode()
+
+
+@pytest.mark.django_db
+def test_atividade_arquivada_sai_da_lista_do_aluno(client, cenario):
+    Atividade.objects.filter(pk=cenario['minha1'].pk).update(arquivada=True)
+    assert cenario['minha1'] not in client.get(LISTA).context['atividades']
+
+
+@pytest.mark.django_db
+def test_atribuicao_cancelada_some_da_lista(client, cenario):
+    Atribuicao.objects.filter(atividade=cenario['minha1']).update(status=Atribuicao.Status.CANCELADA)
+    assert cenario['minha1'] not in client.get(LISTA).context['atividades']

@@ -11,6 +11,8 @@ from django.utils import timezone
 
 from .models import CodigoVerificacao, Profissional, User
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 
 
@@ -35,7 +37,7 @@ def pendente():
 
 @pytest.mark.django_db
 def test_cadastro_sem_aceite_dos_termos_e_recusado(client):
-    dados = _cadastro('profissional', especialidade='X')
+    dados = _cadastro('profissional', profissao='pedagogia')
     del dados['aceite_termos']
     resp = client.post(reverse('cadastro'), dados)
     assert resp.status_code == 200
@@ -46,7 +48,7 @@ def test_cadastro_sem_aceite_dos_termos_e_recusado(client):
 @pytest.mark.django_db
 def test_cadastro_grava_data_do_aceite_dos_termos(client):
     with patch('apps.usuarios.views.enviar_boas_vindas'):
-        client.post(reverse('cadastro'), _cadastro('profissional', especialidade='X'))
+        client.post(reverse('cadastro'), _cadastro('profissional', profissao='pedagogia'))
     assert User.objects.get().termos_aceitos_em is not None
 
 
@@ -67,7 +69,7 @@ def test_cadastro_mostra_aviso_de_aprovacao_para_profissional(client):
 @pytest.mark.django_db
 def test_cadastro_de_profissional_avisa_que_aguarda_aprovacao(client):
     with patch('apps.usuarios.views.enviar_boas_vindas'):
-        resp = client.post(reverse('cadastro'), _cadastro('profissional', especialidade='X'), follow=True)
+        resp = client.post(reverse('cadastro'), _cadastro('profissional', profissao='pedagogia'), follow=True)
     html = resp.content.decode()
     assert 'Conta criada com sucesso' in html and 'Conta aguardando aprovação' in html
 

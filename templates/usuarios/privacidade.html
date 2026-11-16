@@ -26,17 +26,17 @@
   <h2 id="p1">1. Dados que coletamos</h2>
   <ul>
     <li><strong>Todas as contas:</strong> nome, e-mail, perfil (aluno, profissional ou administrador), senha (guardada apenas de forma criptografada, ninguém consegue lê-la), data de criação da conta, data do último acesso e data e hora do aceite destes documentos. Na recuperação de senha, guardamos apenas uma versão criptografada do código, que vale por 10 minutos.</li>
-    <li><strong>Profissionais:</strong> especialidade e, se informado, número do registro profissional.</li>
+    <li><strong>Profissionais:</strong> profissão, área de atuação e, para psicologia, terapia ocupacional e fonoaudiologia, o estado e o número do registro no conselho, que a administração confere no site oficial do conselho antes de aprovar a conta.</li>
     <li><strong>Alunos:</strong> data de nascimento, nome, telefone e e-mail do responsável legal, e data e hora da autorização do responsável.</li>
-    <li><strong>Uso da plataforma:</strong> atividades recebidas e concluídas, a resposta que o aluno escreve em cada atividade, datas e número de tentativas, observações do profissional, anotações escritas por alunos e profissionais e preferências de acessibilidade (tamanho da letra, contraste).</li>
-    <li><strong>Registros de acesso:</strong> quando um aluno aceita um vínculo, quando o dono aprova um profissional na sala, quando alguém consulta a evolução do aluno ou entra na videochamada, guardamos quem fez e quando.</li>
+    <li><strong>Uso da plataforma:</strong> atividades recebidas e concluídas, a resposta que o aluno escreve em cada atividade, os pedidos de ajuda, a resposta do aluno às videochamadas marcadas, datas e número de tentativas, observações do profissional, anotações escritas por alunos e profissionais e preferências de acessibilidade (tamanho da letra, contraste).</li>
+    <li><strong>Registros de acesso:</strong> quando um aluno aceita um vínculo, quando o dono aprova um profissional na sala, quando alguém consulta a evolução do aluno e quando alguém abre a videochamada (com a entrada e a saída, na chamada aberta dentro do ConectaTEA), guardamos quem fez e quando. Esses registros só podem ser consultados pela administração, na aba Auditoria, e não podem ser alterados.</li>
   </ul>
 
   <h2 id="p2">2. Para que usamos</h2>
   <ul>
     <li>Criar e manter sua conta e permitir que você entre no sistema.</li>
     <li>Enviar as atividades ao aluno e mostrar ao profissional a evolução de cada aluno.</li>
-    <li>Enviar e-mails do sistema: boas-vindas, aviso ao responsável sobre o cadastro do aluno e código de recuperação de senha.</li>
+    <li>Enviar e-mails do sistema: boas-vindas, aviso ao responsável sobre o cadastro do aluno, sobre atividades novas ou com prazo vencido e sobre videochamadas marcadas, aviso ao profissional quando o aluno pede ajuda e código de recuperação de senha. Esses e-mails não trazem o nome do aluno nem o conteúdo das atividades.</li>
     <li>Proteger os dados, registrando quem acessa as informações dos alunos.</li>
   </ul>
   <p>Não usamos os dados para publicidade e não vendemos dados a ninguém.</p>
@@ -61,7 +61,7 @@
     <li><strong>Jitsi Meet:</strong> serviço externo usado na videochamada. Recebe o nome de quem entra, o endereço de internet (IP) e o áudio e vídeo da chamada enquanto ela acontece. O ConectaTEA não grava a chamada.</li>
     <li><strong>Administradores da plataforma:</strong> para aprovar profissionais e dar suporte.</li>
     <li><strong>Brevo:</strong> empresa que envia os e-mails do sistema. Recebe o e-mail do usuário ou do responsável e o conteúdo da mensagem.</li>
-    <li><strong>Serviço de hospedagem:</strong> onde o sistema e o banco de dados ficam guardados.</li>
+    <li><strong>Serviços de hospedagem (Render e Neon):</strong> onde o sistema e o banco de dados ficam guardados. Os servidores ficam nos Estados Unidos; essa transferência internacional segue o art. 33 da LGPD, com os cuidados de segurança descritos no item 8.</li>
     <li><strong>Autoridades:</strong> somente quando houver ordem judicial ou obrigação legal.</li>
   </ul>
   <p>As páginas também carregam estilos e a biblioteca de gráficos de um serviço público de distribuição de arquivos (jsDelivr), que pode receber o endereço de internet (IP) do seu aparelho, como acontece em qualquer site.</p>

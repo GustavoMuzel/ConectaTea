@@ -88,9 +88,10 @@ class UserAdmin(SoftDeleteAdminMixin, BaseUserAdmin):
 @admin.register(Profissional)
 class ProfissionalAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     actions = ['desativar_usuarios', 'aprovar_profissionais']
-    list_display = ['__str__', 'registro_profissional', 'is_approved']
+    list_display = ['__str__', 'profissao', 'registro_formatado', 'is_approved', 'aprovado_em']
+    readonly_fields = ['aprovado_em', 'aprovado_por']
     list_editable = ['is_approved']
-    list_filter = ['is_approved']
+    list_filter = ['is_approved', 'profissao']
     list_select_related = ['user']
 
     @admin.action(description='Aprovar profissionais selecionados')

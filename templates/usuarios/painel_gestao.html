@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Painel de Gestão{% endblock %}
 {% block content %}
-<h1 class="h3 mb-4">Painel de Gestão</h1>
+<h1 class="h3 mb-3">Painel de Gestão</h1>
+{% include "partials/_abas_gestao.html" %}
 
 <div class="row g-3 mb-4">
   <div class="col-6 col-lg-3">
@@ -79,17 +80,71 @@
       <li class="cartao d-flex flex-wrap align-items-center justify-content-between gap-3">
         <div>
           <p class="fw-semibold mb-0">{{ profissional.user.name }}</p>
-          <p class="text-body-secondary small mb-0">{{ profissional.especialidade }} · {{ profissional.user.email }}</p>
+          <p class="text-body-secondary small mb-1">{{ profissional.especialidade }} · {{ profissional.user.email }}</p>
+          {% if profissional.conselho %}
+            <p class="mb-0"><strong>Registro:</strong> {{ profissional.registro_formatado }}
+              · <a href="{{ profissional.conselho.2 }}" target="_blank" rel="noopener">Consultar no site do {{ profissional.conselho.0 }}<span class="visually-hidden"> (abre em outra aba)</span></a></p>
+          {% elif profissional.profissao == 'pedagogia' %}
+            <p class="mb-0 small">Pedagogia não tem conselho profissional: confira um documento da instituição em que atua.</p>
+          {% else %}
+            <p class="mb-0 small">Conta antiga, sem profissão informada{% if profissional.registro_profissional %} · registro: {{ profissional.registro_profissional }}{% endif %}.</p>
+          {% endif %}
         </div>
-        <form method="post" action="{% url 'aprovar_profissional_gestao' profissional.pk %}">
+        <form method="post" action="{% url 'aprovar_profissional_gestao' profissional.pk %}"
+              onsubmit="return confirm('Você conferiu o registro de {{ profissional.user.name|escapejs }}? Aprovar libera o acesso aos alunos.')">
           {% csrf_token %}
-          <button type="submit" class="btn btn-primary">Aprovar conta</button>
+          <button type="submit" class="btn btn-primary">Conferi e aprovo<span class="visually-hidden"> {{ profissional.user.name }}</span></button>
         </form>
       </li>
     {% empty %}
       <li class="cartao">Nenhum profissional aguardando aprovação.</li>
     {% endfor %}
   </ul>
+</section>
+
+<section class="mb-4" aria-labelledby="titulo-aprovados">
+  <h2 id="titulo-aprovados" class="h5 mb-3">Profissionais aprovados ({{ profissionais_aprovados|length }})</h2>
+  <div class="cartao table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th scope="col">Nome</th><th scope="col">Profissão</th><th scope="col">Registro</th><th scope="col">Aprovado</th><th scope="col"><span class="visually-hidden">Ação</span></th></tr></thead>
+      <tbody>
+        {% for p in profissionais_aprovados %}
+          <tr>
+            <td>{{ p.user.name }}</td>
+            <td>{{ p.especialidade }}</td>
+            <td>{{ p.registro_formatado|default:"—" }}</td>
+            <td class="small">{% if p.aprovado_em %}{{ p.aprovado_em|date:"d/m/Y" }}{% if p.aprovado_por %} por {{ p.aprovado_por.name }}{% endif %}{% else %}—{% endif %}</td>
+            <td>
+              <form method="post" action="{% url 'revogar_profissional_gestao' p.pk %}"
+                    onsubmit="return confirm('Revogar a aprovação de {{ p.user.name|escapejs }}? Ele perde na hora o acesso aos alunos, às salas e à videochamada.')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm">Revogar<span class="visually-hidden"> {{ p.user.name }}</span></button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nenhum profissional aprovado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="mb-4" aria-labelledby="titulo-email">
+  <h2 id="titulo-email" class="h5 mb-3">E-mails (Brevo)</h2>
+  <div class="cartao">
+    <ul class="mb-3">
+      <li>Chave da API: {% if brevo.chave %}<strong>configurada</strong>{% else %}<strong class="text-danger">não configurada</strong> (variável BREVO_API_KEY){% endif %}</li>
+      <li>Remetente: {% if brevo.remetente %}<strong>{{ brevo.remetente }}</strong>{% else %}<strong class="text-danger">não configurado</strong> (variável BREVO_SENDER_EMAIL){% endif %}</li>
+    </ul>
+    <form method="post" action="{% url 'teste_email' %}" class="row g-2 align-items-end">
+      {% csrf_token %}
+      <div class="col-md-8"><label class="form-label fw-semibold" for="destino-teste">Enviar um e-mail de teste para</label>
+        <input class="form-control" type="email" id="destino-teste" name="destino" value="{{ user.email }}"></div>
+      <div class="col-md-4 d-grid"><button class="btn btn-outline-primary" type="submit">Enviar e-mail de teste</button></div>
+    </form>
+    <p class="small text-body-secondary mt-2 mb-0">Se der erro, a mensagem mostra o motivo que o Brevo devolveu e o que fazer.</p>
+  </div>
 </section>
 
 <section aria-labelledby="titulo-acesso-completo">

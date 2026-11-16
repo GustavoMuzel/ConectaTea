@@ -3,6 +3,8 @@ from django.urls import reverse
 
 from .models import PreferenciaAcessibilidade, User
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 URL = reverse('preferencias')
 

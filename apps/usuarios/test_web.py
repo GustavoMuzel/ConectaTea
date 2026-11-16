@@ -7,6 +7,8 @@ from django.utils import timezone
 
 from .models import Aluno, Profissional, User
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 ALUNO = {'birth_date': '2011-05-01', 'guardian_name': 'Resp', 'guardian_phone': '11999999999',
          'guardian_email': 'resp@ex.com', 'consentimento_responsavel': 'on'}
@@ -48,7 +50,7 @@ def test_paginas_legais_publicas_retornam_200(client, nome):
 @pytest.mark.django_db
 def test_cadastro_profissional_cria_perfil_loga_e_envia_boas_vindas(client, django_capture_on_commit_callbacks):
     with patch('apps.usuarios.views.enviar_boas_vindas') as enviar, django_capture_on_commit_callbacks(execute=True):
-        resp = client.post(reverse('cadastro'), _dados('profissional', especialidade='Pedagogia'))
+        resp = client.post(reverse('cadastro'), _dados('profissional', profissao='pedagogia'))
 
     assert resp.status_code == 302
     user = User.objects.get(email='novo@ex.com')
@@ -94,7 +96,7 @@ def test_cadastro_profissional_nao_envia_notificacao_de_aluno(client, django_cap
     with patch('apps.usuarios.views.enviar_boas_vindas'), \
          patch('apps.usuarios.views.enviar_notificacao_aluno_criado') as notificar, \
          django_capture_on_commit_callbacks(execute=True):
-        client.post(reverse('cadastro'), _dados('profissional', especialidade='X'))
+        client.post(reverse('cadastro'), _dados('profissional', profissao='pedagogia'))
 
     notificar.assert_not_called()
 
@@ -108,10 +110,10 @@ def test_cadastro_mostra_links_para_termos_e_privacidade(client):
 @pytest.mark.django_db
 @pytest.mark.parametrize('dados, campo', [
     (_dados('admin'), 'role'),
-    (_dados('profissional'), 'especialidade'),
+    (_dados('profissional'), 'profissao'),
     (_dados('aluno', **{**ALUNO, 'guardian_email': ''}), 'guardian_email'),
     (_dados('aluno', **{**ALUNO, 'birth_date': '2999-01-01'}), 'birth_date'),
-    ({**_dados('profissional', especialidade='X'), 'password2': 'outra'}, 'password2'),
+    ({**_dados('profissional', profissao='pedagogia'), 'password2': 'outra'}, 'password2'),
     (_dados('aluno', **{**ALUNO, 'consentimento_responsavel': ''}), 'consentimento_responsavel'),
 ])
 def test_cadastro_invalido_nao_cria_nada(client, prof, dados, campo, django_capture_on_commit_callbacks):
@@ -128,7 +130,8 @@ def test_cadastro_invalido_nao_cria_nada(client, prof, dados, campo, django_capt
 @pytest.mark.django_db
 def test_cadastro_rejeita_email_repetido_sem_diferenciar_maiusculas(client, prof, django_capture_on_commit_callbacks):
     with patch('apps.usuarios.views.enviar_boas_vindas') as enviar, django_capture_on_commit_callbacks(execute=True):
-        resp = client.post(reverse('cadastro'), {**_dados('profissional', especialidade='X'), 'email': 'PROF@ex.com'})
+        dados = {**_dados('profissional', profissao='pedagogia'), 'email': 'PROF@ex.com'}
+        resp = client.post(reverse('cadastro'), dados)
     assert 'email' in resp.context['form'].errors
     assert User.objects.count() == 1
     enviar.assert_not_called()
@@ -137,7 +140,8 @@ def test_cadastro_rejeita_email_repetido_sem_diferenciar_maiusculas(client, prof
 @pytest.mark.django_db
 def test_cadastro_nao_permite_escalar_privilegio(client):
     with patch('apps.usuarios.views.enviar_boas_vindas'):
-        client.post(reverse('cadastro'), _dados('profissional', especialidade='X', is_staff='on', is_superuser='on'))
+        dados = _dados('profissional', profissao='pedagogia', is_staff='on', is_superuser='on')
+        client.post(reverse('cadastro'), dados)
     user = User.objects.get(email='novo@ex.com')
     assert not user.is_staff and not user.is_superuser
 
@@ -168,7 +172,7 @@ def test_login_invalido_e_usuario_inativo(client, prof):
 def test_falha_inesperada_no_email_nao_quebra_cadastro(client):
     # transaction=True: on_commit roda de verdade, fora da transação do teste.
     with patch('apps.usuarios.views.enviar_boas_vindas', side_effect=RuntimeError('brevo fora')) as enviar:
-        resp = client.post(reverse('cadastro'), _dados('profissional', especialidade='X'))
+        resp = client.post(reverse('cadastro'), _dados('profissional', profissao='pedagogia'))
     assert resp.status_code == 302
     enviar.assert_called_once()
     assert User.objects.filter(email='novo@ex.com').exists()
@@ -213,7 +217,7 @@ def test_cadastro_aluno_sem_consentimento_mostra_erro_e_nao_cria(client, prof):
 @pytest.mark.django_db
 def test_cadastro_profissional_nao_exige_consentimento(client):
     with patch('apps.usuarios.views.enviar_boas_vindas'):
-        resp = client.post(reverse('cadastro'), _dados('profissional', especialidade='X'))
+        resp = client.post(reverse('cadastro'), _dados('profissional', profissao='pedagogia'))
     assert resp.status_code == 302
 
 

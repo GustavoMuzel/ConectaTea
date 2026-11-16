@@ -32,5 +32,20 @@
       <a class="btn btn-outline-secondary btn-lg" href="{% url 'aluno_atividades' %}">Voltar</a>
     </div>
   </form>
+
+  <section class="ajuda mt-4" aria-labelledby="t-ajuda">
+    <h2 id="t-ajuda" class="h5">Está difícil?</h2>
+    {% if pedido_ajuda %}
+      <p class="mb-0" role="status">✔ Você pediu ajuda em {{ pedido_ajuda.criado_em|date:"d/m \à\s H\hi" }}. O seu profissional já foi avisado.</p>
+    {% else %}
+      <p>Tudo bem pedir ajuda. O seu profissional recebe um aviso.</p>
+      <form method="post" action="{% url 'pedir_ajuda' atividade.pk %}" novalidate>
+        {% csrf_token %}
+        <label class="form-label fw-semibold" for="id_mensagem">O que está difícil? (opcional)</label>
+        <textarea class="form-control mb-3" id="id_mensagem" name="mensagem" rows="2" maxlength="1000"></textarea>
+        <button type="submit" class="btn btn-outline-primary btn-lg w-100">Preciso de ajuda</button>
+      </form>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}

@@ -1,0 +1,23 @@
+{% comment %}
+Laço (fita) da conscientização do autismo, com peças de quebra-cabeça coloridas em tons suaves.
+Parâmetros: gid (id único do padrão na página), classe (classes CSS) e titulo (texto para leitor de tela;
+sem título, o laço é só decorativo).
+{% endcomment %}
+<svg class="laco {{ classe }}" viewBox="0 0 64 96" {% if titulo %}role="img" aria-label="{{ titulo }}"{% else %}aria-hidden="true"{% endif %} focusable="false">
+  <defs>
+    <pattern id="pecas-{{ gid }}" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(-25)">
+      <rect width="8" height="8" fill="#6a9bd1"/>
+      <rect x="8" width="8" height="8" fill="#f0cf6b"/>
+      <rect y="8" width="8" height="8" fill="#e48a8a"/>
+      <rect x="8" y="8" width="8" height="8" fill="#8cc79a"/>
+      <circle cx="8" cy="4" r="2.2" fill="#6a9bd1"/>
+      <circle cx="12" cy="8" r="2.2" fill="#f0cf6b"/>
+      <circle cx="4" cy="8" r="2.2" fill="#e48a8a"/>
+      <circle cx="8" cy="12" r="2.2" fill="#8cc79a"/>
+    </pattern>
+  </defs>
+  <path class="laco-contorno" d="M20 88 38 46C48 24 46 10 32 10S16 24 26 46L44 88"
+        fill="none" stroke="#2f5d7c" stroke-width="13" stroke-linejoin="round"/>
+  <path class="laco-pecas" d="M20 88 38 46C48 24 46 10 32 10S16 24 26 46L44 88"
+        fill="none" stroke="url(#pecas-{{ gid }})" stroke-width="9.5" stroke-linejoin="round"/>
+</svg>

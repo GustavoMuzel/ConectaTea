@@ -1,0 +1,7 @@
+{% with atual=request.resolver_match.url_name %}
+<nav class="abas mb-4" aria-label="Seções do Painel de Gestão">
+  <a class="aba" href="{% url 'painel_gestao' %}"{% if atual == 'painel_gestao' %} aria-current="page"{% endif %}>Visão geral</a>
+  <a class="aba" href="{% url 'auditoria' %}"{% if atual == 'auditoria' %} aria-current="page"{% endif %}>Auditoria</a>
+  <a class="aba" href="{% url 'admin:index' %}">Administração completa</a>
+</nav>
+{% endwith %}

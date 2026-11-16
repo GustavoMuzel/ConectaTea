@@ -8,6 +8,8 @@ from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import Atividade
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 
 
@@ -74,18 +76,17 @@ def test_concluir_atualiza_a_atribuicao_para_concluida(client, cenario):
 
 
 @pytest.mark.django_db
-def test_concluir_sem_distribuicao_previa_cria_atribuicao_concluida(client, cenario):
+def test_sem_distribuicao_previa_o_aluno_nao_conclui(client, cenario):
     client.force_login(cenario['aluno'].user)
-    client.post(reverse('concluir_atividade', args=[cenario['atividade'].pk]), {'resposta': 'x'})
-    atribuicao = Atribuicao.objects.get()
-    assert (atribuicao.aluno, atribuicao.profissional) == (cenario['aluno'], cenario['prof'])
-    assert atribuicao.status == Atribuicao.Status.CONCLUIDA
+    resp = client.post(reverse('concluir_atividade', args=[cenario['atividade'].pk]), {'resposta': 'x'})
+    assert resp.status_code == 404
+    assert not Atribuicao.objects.exists() and not RegistroEvolucao.objects.exists()
 
 
 @pytest.mark.django_db
 def test_visualizar_evolucao_registra_log_de_acesso(client, cenario):
     client.force_login(cenario['prof'].user)
     assert client.get(reverse('evolucao_aluno', args=[cenario['aluno'].pk])).status_code == 200
-    log = LogAcesso.objects.get()
-    assert (log.user, log.aluno, log.acao) == (cenario['prof'].user, cenario['aluno'], 'Visualizou evolução')
+    log = LogAcesso.objects.get(categoria=LogAcesso.Categoria.DADOS_ALUNO)  # o login também é registrado
+    assert (log.user, log.aluno, log.acao) == (cenario['prof'].user, cenario['aluno'], 'Visualizou a evolução do aluno')
     assert log.ocorrido_em is not None

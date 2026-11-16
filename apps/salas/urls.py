@@ -12,7 +12,12 @@ urlpatterns = [
          name='analisar_atividade'),
     path('<int:pk>/membros/<int:membro_pk>/<str:decisao>/', views.DecidirMembroView.as_view(), name='decidir_membro'),
     path('<int:pk>/videochamada/', views.VideochamadaView.as_view(), name='videochamada'),
+    path('<int:pk>/videochamada/nova-aba/', views.VideochamadaNovaAbaView.as_view(), name='videochamada_nova_aba'),
+    path('<int:pk>/videochamada/<int:participacao_pk>/evento/', views.EventoVideochamadaView.as_view(),
+         name='evento_videochamada'),
+    path('<int:pk>/agenda/', views.AgendarChamadaView.as_view(), name='agendar_chamada'),
     path('vinculo/aluno/<int:pk>/pedir/', views.EnviarPedidoVinculoView.as_view(), name='pedir_vinculo'),
     path('vinculo/<int:pk>/<str:resposta>/', views.ResponderPedidoVinculoView.as_view(), name='responder_vinculo'),
     path('minha-equipe/', views.MinhaEquipeView.as_view(), name='minha_equipe'),
+    path('minha-equipe/chamada/<str:resposta>/', views.ResponderChamadaView.as_view(), name='responder_chamada'),
 ]

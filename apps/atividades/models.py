@@ -42,3 +42,21 @@ class Atividade(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class ArquivoArmazenado(models.Model):
+    """Conteúdo de um arquivo enviado, quando ARMAZENAMENTO_ARQUIVOS=banco (ver armazenamento.py)."""
+
+    id = models.BigAutoField(primary_key=True, db_column='arquivo_id')
+    nome = models.CharField(max_length=255, unique=True)
+    conteudo = models.BinaryField()
+    tamanho = models.PositiveIntegerField()
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'arquivos_armazenados'
+        verbose_name = 'arquivo armazenado'
+        verbose_name_plural = 'arquivos armazenados'
+
+    def __str__(self):
+        return self.nome

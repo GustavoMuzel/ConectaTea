@@ -1,0 +1,19 @@
+{% comment %}
+Símbolo do infinito da neurodiversidade, em degradê de cores suaves (o espectro, sem cores saturadas).
+Parâmetros: gid (id único do degradê na página), classe (classes CSS) e titulo (texto para leitor de tela;
+sem título, o símbolo é só decorativo).
+{% endcomment %}
+<svg class="infinito {{ classe }}" viewBox="0 0 48 24" {% if titulo %}role="img" aria-label="{{ titulo }}"{% else %}aria-hidden="true"{% endif %} focusable="false">
+  <defs>
+    <linearGradient id="espectro-{{ gid }}" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6f9cc4"/>
+      <stop offset=".2" stop-color="#7fb8ad"/>
+      <stop offset=".4" stop-color="#a6c98f"/>
+      <stop offset=".6" stop-color="#e2c675"/>
+      <stop offset=".8" stop-color="#e2a48f"/>
+      <stop offset="1" stop-color="#ad9bd2"/>
+    </linearGradient>
+  </defs>
+  <path class="infinito-traco" d="M24 12c-4-5-8-8-12-8a8 8 0 0 0 0 16c4 0 8-3 12-8s8-8 12-8a8 8 0 0 1 0 16c-4 0-8-3-12-8z"
+        fill="none" stroke="url(#espectro-{{ gid }})" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

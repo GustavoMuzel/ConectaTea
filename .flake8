@@ -1,3 +1,9 @@
 [flake8]
+# Regras ativas: pycodestyle (E/W: estilo e formatação), pyflakes (F: import ou variável sem uso, nome
+# indefinido) e mccabe (C901: função complexa demais). Qualquer violação reprova o job "Linter" do CI.
 max-line-length = 120
-exclude = .venv,*/migrations/*
+max-complexity = 10
+# extend-exclude soma às pastas que o flake8 já ignora (.git, __pycache__ etc.), em vez de substituí-las.
+extend-exclude = .venv,venv,*/migrations/*,staticfiles,media
+show-source = true
+count = true

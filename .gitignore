@@ -6,3 +6,8 @@ db.sqlite3
 .pytest_cache/
 .code-review-graph/
 staticfiles/
+media/
+
+# Cobertura de testes (gerado pelo coverage)
+.coverage
+htmlcov/

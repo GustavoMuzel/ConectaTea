@@ -10,6 +10,8 @@ from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import Atribuicao, RegistroEvolucao
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 HISTORICO = reverse('historico_aluno')
 CONCLUIDA, EM_ANDAMENTO = RegistroEvolucao.Status.CONCLUIDA, RegistroEvolucao.Status.EM_ANDAMENTO
@@ -29,13 +31,17 @@ def _aluno(email, prof):
 @pytest.fixture
 def cenario():
     prof = _prof('prof@ex.com')
-    return {
+    c = {
         'prof': prof,
         'aluno': _aluno('aluno@ex.com', prof),
         'colega': _aluno('colega@ex.com', prof),
         'cumprimentar': Atividade.objects.create(profissional=prof, title='Cumprimentar', category='social'),
         'pedir': Atividade.objects.create(profissional=prof, title='Pedir ajuda', category='social'),
     }
+    for aluno in (c['aluno'], c['colega']):  # distribuídas aos dois (RF07)
+        for atividade in (c['cumprimentar'], c['pedir']):
+            Atribuicao.objects.create(atividade=atividade, aluno=aluno, profissional=prof)
+    return c
 
 
 def _concluir(aluno, atividade, dias_atras=0):

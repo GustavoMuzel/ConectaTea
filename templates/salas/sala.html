@@ -1,10 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Sala de {{ sala.aluno.user.name }}{% endblock %}
+{% block title %}Sala de {{ sala.aluno.user.name }}
+<section class="cartao mt-4" aria-labelledby="t-hist-chamadas">
+  <h2 id="t-hist-chamadas" class="h5 mb-3">Histórico das videochamadas</h2>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <caption class="small">Entrada e saída confirmadas pelo Jitsi na chamada aberta aqui. Na chamada aberta em outra aba, o sistema registra só que ela foi acionada.</caption>
+      <thead><tr><th scope="col">Pessoa</th><th scope="col">Abriu</th><th scope="col">Entrou</th><th scope="col">Saiu</th><th scope="col">Duração</th></tr></thead>
+      <tbody>
+        {% for p in chamadas %}
+          <tr>
+            <td>{{ p.user.name }}</td>
+            <td>{{ p.acionada_em|date:"d/m H:i" }}{% if p.forma == 'nova_aba' %} <span class="small text-body-secondary">(outra aba)</span>{% endif %}</td>
+            <td>{{ p.entrou_em|date:"H:i"|default:"—" }}</td>
+            <td>{{ p.saiu_em|date:"H:i"|default:"—" }}</td>
+            <td>{% if p.duracao %}{{ p.duracao|stringformat:"s"|slice:":7" }}{% else %}—{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nenhuma videochamada ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-1">
   <h1 class="h3 mb-0">Sala de {{ sala.aluno.user.name }}</h1>
   <div class="d-flex flex-wrap gap-2">
-    <a class="btn btn-primary" href="{% url 'videochamada' sala.pk %}" target="_blank" rel="noopener">Abrir videochamada<span class="visually-hidden"> (abre em outra aba)</span></a>
+    <a class="btn btn-primary" href="{% url 'videochamada' sala.pk %}">Entrar na videochamada</a>
     <a class="btn btn-outline-primary" href="{% url 'evolucao_aluno' sala.aluno.pk %}">Ver evolução</a>
   </div>
 </div>
@@ -67,6 +90,33 @@
   </div>
 
   <div class="col-lg-5 d-grid gap-4 align-content-start">
+    <section class="cartao" aria-labelledby="t-chamada">
+      <h2 id="t-chamada" class="h5 mb-3">Videochamada</h2>
+      {% if na_chamada %}
+        <p class="mb-2" role="status"><strong>Na chamada agora:</strong> {% for p in na_chamada %}{{ p.user.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+      {% endif %}
+      {% if sala.proxima_chamada %}
+        <p class="mb-1"><strong>Próxima:</strong> {{ sala.proxima_chamada|date:"l, d/m/Y \à\s H\hi" }}</p>
+        {% if sala.pauta_chamada %}<p class="small mb-3">{{ sala.pauta_chamada }}</p>{% endif %}
+        <p class="small mb-3"><strong>Resposta do aluno:</strong>
+          {% if sala.resposta_aluno == 'sim' %}vai participar{% elif sala.resposta_aluno == 'nao' %}não vai conseguir{% else %}ainda não respondeu{% endif %}{% if sala.respondida_em %} ({{ sala.respondida_em|date:"d/m H:i" }}){% endif %}</p>
+      {% else %}
+        <p class="small text-body-secondary">Nenhuma chamada marcada.</p>
+      {% endif %}
+      {% if eh_dono %}
+        <p class="small text-body-secondary">O aluno só consegue entrar no horário que você marcar: de 15 minutos antes até 2 horas depois. Os profissionais da sala entram a qualquer momento.</p>
+        <form method="post" action="{% url 'agendar_chamada' sala.pk %}" novalidate>
+          {% csrf_token %}
+          {{ form_agenda.proxima_chamada.as_field_group }}
+          {{ form_agenda.pauta_chamada.as_field_group }}
+          <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary">Marcar videochamada</button>
+            {% if sala.proxima_chamada %}<button type="submit" name="limpar" value="1" class="btn btn-outline-secondary">Desmarcar</button>{% endif %}
+          </div>
+        </form>
+      {% endif %}
+    </section>
+
     {% if eh_dono %}
       <section class="cartao" aria-labelledby="t-senha">
         <h2 id="t-senha" class="h5 mb-2">Senha da sala</h2>
@@ -113,4 +163,27 @@
     </section>
   </div>
 </div>
+
+<section class="cartao mt-4" aria-labelledby="t-hist-chamadas">
+  <h2 id="t-hist-chamadas" class="h5 mb-3">Histórico das videochamadas</h2>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <caption class="small">Entrada e saída confirmadas pelo Jitsi na chamada aberta aqui. Na chamada aberta em outra aba, o sistema registra só que ela foi acionada.</caption>
+      <thead><tr><th scope="col">Pessoa</th><th scope="col">Abriu</th><th scope="col">Entrou</th><th scope="col">Saiu</th><th scope="col">Duração</th></tr></thead>
+      <tbody>
+        {% for p in chamadas %}
+          <tr>
+            <td>{{ p.user.name }}</td>
+            <td>{{ p.acionada_em|date:"d/m H:i" }}{% if p.forma == 'nova_aba' %} <span class="small text-body-secondary">(outra aba)</span>{% endif %}</td>
+            <td>{{ p.entrou_em|date:"H:i"|default:"—" }}</td>
+            <td>{{ p.saiu_em|date:"H:i"|default:"—" }}</td>
+            <td>{% if p.duracao %}{{ p.duracao|stringformat:"s"|slice:":7" }}{% else %}—{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">Nenhuma videochamada ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}

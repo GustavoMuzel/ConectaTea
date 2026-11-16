@@ -7,6 +7,8 @@ from apps.usuarios.models import Aluno, Profissional, User
 
 from .models import Atividade
 
+pytestmark = pytest.mark.integration
+
 SENHA = 'Senha-forte-123'
 
 

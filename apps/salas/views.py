@@ -5,19 +5,21 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db import transaction
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.views import View
 from django.views.generic import TemplateView
 
-from apps.acompanhamento.models import LogAcesso
+from apps.acompanhamento.auditoria import Categoria, registrar
 from apps.atividades.models import Atividade
 from apps.usuarios.mixins import AlunoRequiredMixin, ProfissionalRequiredMixin
 from apps.usuarios.models import Aluno
+from apps.usuarios.services.email import enviar_aviso_chamada_marcada
 
-from .forms import EntrarSalaForm, PropostaAtividadeForm, RecusaAtividadeForm
+from .forms import AgendaChamadaForm, EntrarSalaForm, PropostaAtividadeForm, RecusaAtividadeForm
 from .models import MembroSala, ParticipacaoVideochamada, Sala, SolicitacaoVinculo, gerar_senha_sala
 
 
@@ -41,6 +43,7 @@ class EnviarPedidoVinculoView(ProfissionalRequiredMixin, View):
             profissional=request.user.profissional, aluno=aluno, status=SolicitacaoVinculo.Status.PENDENTE,
         )
         if criado:
+            registrar(request, 'Enviou pedido de vínculo', Categoria.SALAS, aluno=aluno)
             messages.success(request, f'Pedido enviado. Agora {aluno.user.name} precisa aceitar.')
         else:
             messages.info(request, f'Você já enviou um pedido para {aluno.user.name}. Aguarde a resposta.')
@@ -64,6 +67,8 @@ class ResponderPedidoVinculoView(QualquerAlunoMixin, View):
             if resposta == 'recusar':
                 pedido.status, pedido.respondida_em = SolicitacaoVinculo.Status.RECUSADA, agora
                 pedido.save(update_fields=['status', 'respondida_em'])
+                registrar(request, f'Recusou o vínculo com {pedido.profissional.user.name}', Categoria.SALAS,
+                          aluno=aluno)
                 messages.info(request, f'Você recusou o pedido de {pedido.profissional.user.name}.')
                 return redirect('home')
             profissional = pedido.profissional
@@ -86,10 +91,9 @@ class ResponderPedidoVinculoView(QualquerAlunoMixin, View):
                 sala.save(update_fields=['dono', 'senha', 'id_videochamada'])
                 sala.membros.exclude(status=MembroSala.Status.REMOVIDO).update(
                     status=MembroSala.Status.REMOVIDO, respondido_em=agora)
-            LogAcesso.objects.create(user=request.user, aluno=aluno,
-                                     acao=f'Aceitou o vínculo com {profissional.user.name}')
+            registrar(request, f'Aceitou o vínculo com {profissional.user.name}', Categoria.SALAS, aluno=aluno)
         messages.success(request, f'Pronto! Agora {profissional.user.name} acompanha você.')
-        return redirect('aluno_atividades')
+        return redirect('aluno_painel')
 
 
 # Salas (lado do profissional) --------------------------------------------------------------------------------
@@ -130,6 +134,7 @@ class EntrarSalaView(SalasView):
             # Recusado ou removido pode pedir de novo; o dono decide outra vez.
             membro.status, membro.respondido_em = MembroSala.Status.PENDENTE, None
             membro.save(update_fields=['status', 'respondido_em'])
+        registrar(request, 'Pediu para entrar na sala do aluno', Categoria.SALAS, aluno=sala.aluno)
         messages.success(request, f'Pedido enviado. {sala.dono.user.name}, dono da sala, precisa aprovar sua entrada.')
         return redirect('salas')
 
@@ -161,6 +166,10 @@ class SalaView(SalaDoProfissionalMixin, TemplateView):
     def get_context_data(self, **kwargs):
         sala, dono = self.sala, self.eh_dono()
         kwargs.update(sala=sala, eh_dono=dono, membros=sala.membros_aprovados())
+        kwargs['na_chamada'] = sala.na_chamada_agora()
+        kwargs['chamadas'] = sala.participacoes_video.select_related('user')[:15]
+        if dono:
+            kwargs.setdefault('form_agenda', AgendaChamadaForm(instance=sala))
         kwargs.setdefault('form_proposta', PropostaAtividadeForm())
         exclusivas = Atividade.objects.filter(aluno=sala.aluno).select_related('autor__user').order_by('-created_at')
         if dono:
@@ -195,6 +204,9 @@ class ProporAtividadeView(SalaView):
             messages.success(request, f'Atividade "{atividade.title}" enviada. Ela aparece para o aluno depois que '
                                       f'{self.sala.dono.user.name} aprovar.')
         atividade.save()
+        acao = 'Publicou' if self.eh_dono() else 'Propôs'
+        registrar(request, f'{acao} a atividade "{atividade.title}" na sala', Categoria.ATIVIDADES,
+                  aluno=self.sala.aluno)
         return redirect('sala', pk=self.sala.pk)
 
 
@@ -215,6 +227,9 @@ class AnalisarAtividadeView(SoDonoMixin, View):
             atividade.publicacao = Atividade.Publicacao.RECUSADA
             messages.info(request, f'Atividade "{atividade.title}" recusada.')
         atividade.save(update_fields=['publicacao', 'motivo_recusa'])
+        verbo = 'Aprovou' if decisao == 'aprovar' else 'Recusou'
+        registrar(request, f'{verbo} a atividade proposta "{atividade.title}"', Categoria.ATIVIDADES,
+                  aluno=self.sala.aluno)
         return redirect('sala', pk=self.sala.pk)
 
 
@@ -234,10 +249,14 @@ class DecidirMembroView(SoDonoMixin, View):
                                    pk=membro_pk, sala=self.sala, status=de)
         membro.status, membro.respondido_em = para, timezone.now()
         membro.save(update_fields=['status', 'respondido_em'])
-        if para == MembroSala.Status.APROVADO:
-            # Auditoria: mais uma pessoa passa a ver os dados do aluno (RNF05).
-            LogAcesso.objects.create(user=request.user, aluno=self.sala.aluno,
-                                     acao=f'Aprovou {membro.profissional.user.name} na sala')
+        if para == MembroSala.Status.REMOVIDO:
+            # Quem saiu ainda conhece o endereço da chamada: a sala ganha um endereço novo.
+            self.sala.id_videochamada = uuid.uuid4()
+            self.sala.save(update_fields=['id_videochamada'])
+        # Auditoria (RNF05): quem passa a ver, deixa de ver ou teve negado o acesso aos dados do aluno.
+        verbo = {MembroSala.Status.APROVADO: 'Aprovou', MembroSala.Status.RECUSADO: 'Recusou',
+                 MembroSala.Status.REMOVIDO: 'Removeu'}[para]
+        registrar(request, f'{verbo} {membro.profissional.user.name} na sala', Categoria.SALAS, aluno=self.sala.aluno)
         messages.success(request, f'{membro.profissional.user.name} {texto}.')
         return redirect('sala', pk=self.sala.pk)
 
@@ -251,25 +270,150 @@ class TrocarSenhaSalaView(SoDonoMixin, View):
         while Sala.objects.filter(senha=sala.senha).exclude(pk=sala.pk).exists():
             sala.senha = gerar_senha_sala()
         sala.save(update_fields=['senha'])
+        registrar(request, 'Trocou a senha da sala', Categoria.SALAS, aluno=sala.aluno)
         messages.success(request, 'Senha trocada. A senha antiga não funciona mais; quem já está na sala continua.')
         return redirect('sala', pk=sala.pk)
 
 
 # Videochamada e equipe (aluno) -------------------------------------------------------------------------------
 
-class VideochamadaView(LoginRequiredMixin, View):
-    """Registra a entrada e leva ao Jitsi. Só dono, membros aprovados e o próprio aluno entram (RF13)."""
+def sala_da_chamada(request, pk):
+    """A sala, se quem pede participa dela agora (aprovação e conta conferidas de novo a cada acesso)."""
+    sala = get_object_or_404(Sala.objects.select_related('aluno__user', 'dono__user'), pk=pk)
+    if not sala.participa(request.user):
+        raise Http404
+    return sala
+
+
+def aluno_fora_do_horario(request, sala):
+    """O aluno só entra no horário que o profissional marcou. Devolve o redirecionamento com o aviso, ou None."""
+    if request.user.pk != sala.aluno.user_id or sala.chamada_aberta_para_aluno():
+        return None
+    if sala.chamada_vigente():
+        quando = timezone.localtime(sala.chamada_abre_em).strftime('%d/%m às %Hh%M')
+        messages.info(request, f'A videochamada ainda não começou. Ela abre no dia {quando}.')
+    else:
+        messages.info(request, 'Ainda não há videochamada marcada. O seu profissional vai marcar o dia e a hora.')
+    return redirect('minha_equipe')
+
+
+def nome_da_sala_jitsi(sala):
+    return f'ConectaTEA-{sala.id_videochamada}'
+
+
+class VideochamadaView(LoginRequiredMixin, TemplateView):
+    """Chamada embutida no ConectaTEA (RF13). Só aluno, dono e membros aprovados, com a sala ativa."""
+
+    template_name = 'salas/videochamada.html'
+
+    def get(self, request, pk):
+        self.sala = sala_da_chamada(request, pk)
+        fora = aluno_fora_do_horario(request, self.sala)
+        if fora:
+            return fora
+        self.participacao = ParticipacaoVideochamada.objects.create(
+            sala=self.sala, user=request.user, forma=ParticipacaoVideochamada.Forma.EMBUTIDA,
+        )
+        return super().get(request, pk)
+
+    def get_context_data(self, **kwargs):
+        sala, user = self.sala, self.request.user
+        kwargs.update(
+            sala=sala, participacao=self.participacao, dominio=settings.JITSI_DOMINIO,
+            nome_sala=nome_da_sala_jitsi(sala), eh_aluno=user.pk == sala.aluno.user_id,
+            voltar=reverse('minha_equipe') if user.pk == sala.aluno.user_id else reverse('sala', args=[sala.pk]),
+            equipe=sala.membros_aprovados(),
+        )
+        return super().get_context_data(**kwargs)
+
+
+class VideochamadaNovaAbaView(LoginRequiredMixin, View):
+    """Plano B: abre a chamada no site do Jitsi. Aqui só dá para registrar o acionamento, não a entrada."""
 
     http_method_names = ['get']
 
     def get(self, request, pk):
-        sala = get_object_or_404(Sala.objects.select_related('aluno', 'dono'), pk=pk)
-        if not sala.participa(request.user):
-            raise Http404
-        ParticipacaoVideochamada.objects.create(sala=sala, user=request.user)
+        sala = sala_da_chamada(request, pk)
+        fora = aluno_fora_do_horario(request, sala)
+        if fora:
+            return fora
+        ParticipacaoVideochamada.objects.create(sala=sala, user=request.user,
+                                                forma=ParticipacaoVideochamada.Forma.NOVA_ABA)
         nome = quote(f'"{request.user.name}"')
-        return redirect(f'https://{settings.JITSI_DOMINIO}/ConectaTEA-{sala.id_videochamada}'
-                        f'#userInfo.displayName={nome}')
+        return redirect(f'https://{settings.JITSI_DOMINIO}/{nome_da_sala_jitsi(sala)}#userInfo.displayName={nome}')
+
+
+class EventoVideochamadaView(LoginRequiredMixin, View):
+    """Recebe da página da chamada os eventos do Jitsi: entrada confirmada e saída."""
+
+    http_method_names = ['post']
+
+    def post(self, request, pk, participacao_pk):
+        tipo = request.POST.get('tipo')
+        if tipo not in ('entrou', 'saiu'):
+            return JsonResponse({'erro': 'tipo inválido'}, status=400)
+        participacao = get_object_or_404(ParticipacaoVideochamada, pk=participacao_pk, sala_id=pk, user=request.user,
+                                         forma=ParticipacaoVideochamada.Forma.EMBUTIDA)
+        agora = timezone.now()
+        if tipo == 'entrou':
+            # Quem perdeu o acesso no meio do caminho não tem a entrada registrada.
+            if not participacao.sala.participa(request.user):
+                return JsonResponse({'erro': 'sem acesso'}, status=403)
+            if participacao.entrou_em is None:
+                participacao.entrou_em = agora
+                participacao.save(update_fields=['entrou_em'])
+        elif participacao.entrou_em and participacao.saiu_em is None:
+            participacao.saiu_em = agora
+            participacao.save(update_fields=['saiu_em'])
+        return JsonResponse({'ok': True})
+
+
+class AgendarChamadaView(SoDonoMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        if request.POST.get('limpar'):
+            self.sala.proxima_chamada, self.sala.pauta_chamada = None, ''
+            self.sala.resposta_aluno, self.sala.respondida_em = '', None
+            self.sala.save(update_fields=['proxima_chamada', 'pauta_chamada', 'resposta_aluno', 'respondida_em'])
+            registrar(request, 'Desmarcou a videochamada', Categoria.SALAS, aluno=self.sala.aluno)
+            messages.info(request, 'Próxima chamada desmarcada.')
+            return redirect('sala', pk=self.sala.pk)
+        form = AgendaChamadaForm(request.POST, instance=self.sala)
+        if form.is_valid():
+            sala = form.save(commit=False)
+            sala.resposta_aluno, sala.respondida_em = '', None  # horário novo: o aluno responde de novo
+            sala.save()
+            aluno, quando = sala.aluno, sala.proxima_chamada
+            transaction.on_commit(lambda: enviar_aviso_chamada_marcada(aluno, quando), robust=True)
+            registrar(request, f'Marcou videochamada para {timezone.localtime(quando):%d/%m/%Y %H:%M}',
+                      Categoria.SALAS, aluno=aluno)
+            messages.success(request, 'Videochamada marcada. O aluno vê o dia e a hora e só consegue entrar nesse '
+                                      'horário (de 15 minutos antes até 2 horas depois).')
+        else:
+            messages.error(request, ' '.join(e for erros in form.errors.values() for e in erros))
+        return redirect('sala', pk=self.sala.pk)
+
+
+class ResponderChamadaView(AlunoRequiredMixin, View):
+    """O aluno avisa se vai participar da videochamada marcada ("Vou participar" ou "Não vou conseguir")."""
+
+    http_method_names = ['post']
+
+    def post(self, request, resposta):
+        if resposta not in ('sim', 'nao'):
+            raise Http404
+        sala = get_object_or_404(Sala, aluno=request.user.aluno)
+        if not (sala.ativa() and sala.chamada_vigente()):
+            messages.info(request, 'Não há videochamada marcada agora.')
+            return redirect('minha_equipe')
+        sala.resposta_aluno, sala.respondida_em = resposta, timezone.now()
+        sala.save(update_fields=['resposta_aluno', 'respondida_em'])
+        texto = 'vai participar' if resposta == 'sim' else 'não vai conseguir'
+        registrar(request, f'Respondeu à videochamada: {texto}', Categoria.SALAS, aluno=sala.aluno)
+        messages.success(request, 'Obrigado! O seu profissional vai ver a sua resposta.' if resposta == 'sim' else
+                         'Tudo bem. O seu profissional vai ver que você não vai conseguir e pode marcar outro horário.')
+        return redirect('aluno_painel' if request.POST.get('voltar') == 'inicio' else 'minha_equipe')
 
 
 class MinhaEquipeView(AlunoRequiredMixin, TemplateView):
@@ -280,5 +424,7 @@ class MinhaEquipeView(AlunoRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         sala = Sala.objects.filter(aluno=self.request.user.aluno).select_related('dono__user').first()
         kwargs['sala'] = sala
-        kwargs['membros'] = sala.membros_aprovados() if sala else []
+        kwargs['ativa'] = bool(sala and sala.ativa())
+        kwargs['membros'] = sala.membros_aprovados() if kwargs['ativa'] else []
+        kwargs['na_chamada'] = sala.na_chamada_agora() if kwargs['ativa'] else []
         return super().get_context_data(**kwargs)

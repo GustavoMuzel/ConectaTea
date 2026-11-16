@@ -1,0 +1,19 @@
+Rede: domestica  |  meta do RNF03: 2000 ms
+Com --cdn-local o navegador não usa cache: as visitas seguintes também baixam tudo de novo.
+
+perfil       página                            1ª visita  seguintes  meta
+visitante    /                                     615ms      542ms  ok
+visitante    /entrar/                              547ms      554ms  ok
+visitante    /sobre-o-tea/                         550ms      556ms  ok
+pedro        /aluno/                               385ms      551ms  ok
+pedro        /aluno/atividades/                    758ms      383ms  ok
+pedro        /aluno/historico/                     548ms      550ms  ok
+pedro        /salas/minha-equipe/                  536ms      554ms  ok
+mariana      /painel/                              586ms      569ms  ok
+mariana      /painel/alunos/                       379ms      555ms  ok
+mariana      /salas/                               550ms      545ms  ok
+mariana      /aluno/dashboard-profissional/        839ms      621ms  ok
+coordenacao  /painel-gestao/                       661ms      626ms  ok
+coordenacao  /painel-gestao/auditoria/             377ms      546ms  ok
+
+Pior caso: 839 ms (dentro da meta de 2 s).
