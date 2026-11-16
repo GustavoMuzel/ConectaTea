@@ -7,3 +7,7 @@ db.sqlite3
 .code-review-graph/
 staticfiles/
 media/
+
+# Cobertura de testes (gerado pelo coverage)
+.coverage
+htmlcov/

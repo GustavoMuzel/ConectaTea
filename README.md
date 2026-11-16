@@ -6,6 +6,12 @@ Todo o projeto segue a ideia de **baixa carga sensorial**. Por isso o texto é g
 
 As funcionalidades entregues estão detalhadas em [docs/funcionalidades.md](docs/funcionalidades.md).
 
+**Acompanhamento de 16/11/2026** (branch `entrega-16-11`):
+- [Relatório e checklist de acompanhamento](docs/acompanhamento-16-11.md)
+- [Instruções de execução, roteiro de verificação e evidências](docs/execucao.md)
+- [Teste de desempenho](docs/desempenho.md)
+- Sistema publicado: https://conectatea-j0az.onrender.com
+
 ## Stack Tecnológica
 
 - **Python** + **Django**, com views baseadas em classe e autenticação por sessão

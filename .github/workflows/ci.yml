@@ -47,8 +47,12 @@ jobs:
           echo "SECRET_KEY=$chave" >> "$GITHUB_ENV"
 
       # Sem banco e sem rede: o pytest-django bloqueia o banco e o conftest.py bloqueia conexões.
-      - name: Rodar os testes unitários
-        run: pytest -m unit -v
+      # A cobertura dos testes unitários precisa ficar em pelo menos 50% (plano de ensino); abaixo disso, o job falha.
+      - name: Rodar os testes unitários e medir a cobertura
+        run: |
+          pip install coverage==7.17.3
+          coverage run -m pytest -m unit -v
+          coverage report --fail-under=50
 
   testes-integracao:
     name: Testes de integração
